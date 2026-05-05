@@ -1,37 +1,29 @@
-# Django
-*.log
-*.pot
-*.pyc
+# Python
 __pycache__/
-local_settings.py
+*.pyc
+
+# Django
 db.sqlite3
-db.sqlite3-journal
-
-# Backup files
-*.bak
-
-# Virtual Environment
-venv/
-ENV/
-env/
-
-# Media and Static
 media/
-static/
-!static/style.css
-!static/script.js
+staticfiles/
 
-# IDEs
+# Environment variables
+.env
+
+# VS Code
 .vscode/
-.idea/
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Antigravity / Gemini files
+# Antigravity
 .antigravity*
 .gemini*
 brain/
 scratch/
 artifacts/
+
+# result.txt
+result.txt
+.my_agent_config.json 
