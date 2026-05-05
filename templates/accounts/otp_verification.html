@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .auth-wrapper {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px;
+        background: #fff;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 400px;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .brand-section {
+        margin-bottom: 40px;
+    }
+
+    .brand-name {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #000;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .brand-tagline {
+        font-size: 0.85rem;
+        color: #666;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+
+    .otp-section {
+        text-align: left;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .input-group {
+        border-bottom: 2px solid #000;
+        margin-bottom: 30px;
+        padding: 5px 0;
+    }
+
+    .otp-input {
+        width: 100%;
+        border: none;
+        font-size: 1.5rem;
+        font-weight: 700;
+        outline: none;
+        background: transparent;
+        letter-spacing: 10px;
+        text-align: center;
+    }
+
+    .otp-input::placeholder {
+        color: #eee;
+    }
+
+    .submit-btn {
+        width: 100%;
+        background: #000;
+        color: #fff;
+        border: none;
+        padding: 16px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        cursor: pointer;
+        transition: opacity 0.3s;
+    }
+
+    .submit-btn:hover {
+        opacity: 0.9;
+    }
+
+    .resend-link {
+        display: block;
+        margin-top: 20px;
+        font-size: 0.8rem;
+        color: #666;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .resend-link:hover {
+        color: #000;
+    }
+
+    .auth-alert {
+        background: #f8f8f8;
+        padding: 12px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: #333;
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <header class="brand-section">
+            <h1 class="brand-name">MyLinen</h1>
+            <p class="brand-tagline">Verify OTP</p>
+        </header>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="auth-alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="otp-section">
+            <form method="POST" action="{% url 'verify_otp' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}">
+                <label class="form-label">Enter 6-Digit OTP</label>
+                <div class="input-group">
+                    <input type="text" name="otp" class="otp-input" placeholder="000000" maxlength="6" required autofocus>
+                </div>
+                
+                <button type="submit" class="submit-btn">Verify & Login</button>
+            </form>
+            <a href="{% url 'login' %}" class="resend-link">Change Mobile Number</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

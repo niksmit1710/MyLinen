@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="cart-page">
+    <div class="cart-container">
+        <header class="cart-header">
+            <h1 class="page-title">SHOPPING BAG</h1>
+            <p class="cart-count"><span id="cart-count-val">{{ cart|length }}</span> Items</p>
+        </header>
+
+        {% if cart %}
+        <div class="cart-layout">
+            <section class="cart-items">
+
+
+                {% for key, item in cart.items %}
+                <div class="cart-item" id="cart-item-{{ key }}">
+                    <div class="cart-item-left">
+
+                        <div class="item-img-container">
+                            <a href="{% url 'product_detail' item.product_id %}">
+                                <img src="{{ item.image }}" alt="{{ item.name }}" loading="lazy">
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="cart-item-right">
+                        <div class="item-header">
+                            <div class="brand-info">
+                                <span class="brand-label">MYLINEN</span>
+                                <h3 class="item-name">{{ item.name }}</h3>
+                            </div>
+                            <a href="{% url 'remove_from_cart' key %}" class="remove-btn-icon" title="Remove">
+                                <i class="fa-solid fa-xmark"></i>
+                            </a>
+                        </div>
+
+
+                        <div class="item-selections">
+                            <div class="selection-pill">
+                                <span>Size: </span>
+                                <select class="size-select" data-key="{{ key }}">
+                                    {% for size_stock in item.available_sizes %}
+                                    <option value="{{ size_stock.size.id }}" {% if size_stock.size.id|stringformat:"s" == item.size_id|stringformat:"s" %}selected{% endif %}>
+                                        {{ size_stock.size.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="selection-pill qty-pill">
+                                <span>Qty: </span>
+                                <div class="qty-controls">
+                                    <button class="qty-btn minus" data-key="{{ key }}">-</button>
+                                    <span class="qty-val" id="qty-{{ key }}">{{ item.quantity }}</span>
+                                    <button class="qty-btn plus" data-key="{{ key }}">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="item-pricing">
+                            <span class="sale-price" id="sale-price-{{ key }}">₹{{ item.total_price|default:item.price }}</span>
+                            {% if item.mrp and item.mrp > item.price %}
+                            <span class="mrp-strikethrough" id="mrp-{{ key }}">₹{{ item.total_mrp|default:item.mrp }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="item-status">
+                            <p class="status-line"><i class="fa-solid fa-rotate-left"></i> 7 days return available</p>
+                            <p class="status-line"><i class="fa-solid fa-check"></i> Delivery by <strong>{{ delivery_date|date:"j M Y" }}</strong></p>
+                        </div>
+
+                        <div class="item-subtotal-row" style="display: none;">
+                            <p id="item-total-{{ key }}">₹ {{ item.total_price|default:item.price }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </section>
+
+            <aside class="cart-summary">
+                <div class="summary-box">
+                    <h2 class="summary-title">ORDER SUMMARY</h2>
+
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span id="subtotal-val">₹{{ subtotal }}</span>
+                    </div>
+
+                    {% if not applied_coupon %}
+                    <div id="coupon-row" class="summary-row coupon-applied" style="display:none;">
+                        {% else %}
+                        <div id="coupon-row" class="summary-row coupon-applied">
+                            {% endif %}
+                            <span>Coupon (<span id="coupon-code-display">{{ applied_coupon.code }}</span>) <a
+                                    href="{% url 'remove_coupon' %}"
+                                    style="color:red; font-size:10px; text-decoration:none;">REMOVE</a></span>
+                            <span id="discount-val">-₹{{ discount_amount }}</span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Shipping</span>
+                            <span class="free-text">FREE</span>
+                        </div>
+                        <div class="summary-row total-row">
+                            <span>ESTIMATED TOTAL</span>
+                            <span id="grand-total-val">₹{{ grand_total }}</span>
+                        </div>
+
+                        {% if not applied_coupon %}
+                        <div class="coupon-section" style="margin-top: 20px;">
+                            <form action="{% url 'apply_coupon' %}" method="POST" style="display: flex; gap: 10px;">
+                                {% csrf_token %}
+                                <input type="text" name="coupon_code" placeholder="Enter Coupon Code"
+                                    style="flex: 1; padding: 8px; border: 1px solid #ddd; outline: none;">
+                                <button type="submit"
+                                    style="padding: 8px 15px; background: #000; color: #fff; border: none; cursor: pointer;">APPLY</button>
+                            </form>
+                        </div>
+                        {% endif %}
+
+                        <a href="{% url 'checkout' %}" class="checkout-btn" style="margin-top: 20px;">
+                            PROCEED TO CHECKOUT
+                        </a>
+                        <a href="{% url 'product_list' %}" class="continue-shopping">← Continue Shopping</a>
+
+                        <div class="payment-guarantee">
+                            <p><i class="fa-solid fa-lock"></i> Secure Checkout</p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        {% else %}
+        <div class="empty-cart">
+            <div class="empty-icon">🛍️</div>
+            <h2>Your bag is empty</h2>
+            <p>Looks like you haven't added anything to your bag yet.</p>
+            <a href="/" class="shop-now-btn">SHOP NEW ARRIVALS</a>
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Quantity Buttons
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('qty-btn')) {
+                const btn = e.target;
+                const key = btn.getAttribute('data-key');
+                const action = btn.classList.contains('plus') ? 'plus' : 'minus';
+                const qtySpan = document.getElementById(`qty-${key}`);
+                let currentQty = parseInt(qtySpan.innerText);
+
+                let newQty = action === 'plus' ? currentQty + 1 : currentQty - 1;
+
+                if (newQty < 1) return;
+
+                updateCart(key, newQty, null);
+            }
+        });
+
+        // Size Dropdown
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('size-select')) {
+                const select = e.target;
+                const key = select.getAttribute('data-key');
+                const newSizeId = select.value;
+                const qtySpan = document.getElementById(`qty-${key}`);
+                const currentQty = parseInt(qtySpan.innerText);
+
+                updateCart(key, currentQty, newSizeId);
+            }
+        });
+
+        function updateCart(key, quantity, sizeId) {
+            const url = `{% url 'update_cart' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', key);
+
+            const formData = new FormData();
+            formData.append('quantity', quantity);
+            if (sizeId) {
+                formData.append('size_id', sizeId);
+            }
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        let activeKey = key;
+
+                        // Handle key change (size change)
+                        if (data.new_key !== key) {
+                            if (data.merged) {
+                                // Item was merged into an existing item of the new size
+                                const oldItem = document.getElementById(`cart-item-${key}`);
+                                if (oldItem) {
+                                    oldItem.style.opacity = '0';
+                                    setTimeout(() => oldItem.remove(), 300);
+                                }
+                                activeKey = data.new_key;
+                            } else {
+                                // Just a size change, update IDs and data attributes
+                                const itemRow = document.getElementById(`cart-item-${key}`);
+                                if (itemRow) {
+                                    itemRow.id = `cart-item-${data.new_key}`;
+
+                                    // Update all elements with data-key
+                                    itemRow.querySelectorAll(`[data-key="${key}"]`).forEach(el => {
+                                        el.setAttribute('data-key', data.new_key);
+                                    });
+
+                                    // Update IDs
+                                    const qtySpan = document.getElementById(`qty-${key}`);
+                                    if (qtySpan) qtySpan.id = `qty-${data.new_key}`;
+
+                                    const salePrice = document.getElementById(`sale-price-${key}`);
+                                    if (salePrice) salePrice.id = `sale-price-${data.new_key}`;
+
+                                    const mrpPrice = document.getElementById(`mrp-${key}`);
+                                    if (mrpPrice) mrpPrice.id = `mrp-${data.new_key}`;
+
+                                    const totalP = document.getElementById(`item-total-${key}`);
+                                    if (totalP) totalP.id = `item-total-${data.new_key}`;
+
+                                    // Update remove button link
+                                    const removeBtn = itemRow.querySelector('.remove-btn-icon');
+                                    if (removeBtn) {
+                                        const oldHref = removeBtn.getAttribute('href');
+                                        removeBtn.setAttribute('href', oldHref.replace(key, data.new_key));
+                                    }
+
+                                    activeKey = data.new_key;
+                                }
+                            }
+                        }
+
+                        // Update quantity display for the active item (either renamed or merged target)
+                        const activeQtySpan = document.getElementById(`qty-${activeKey}`);
+                        if (activeQtySpan) activeQtySpan.innerText = data.quantity;
+
+                        // Update prices
+                        const activeSalePrice = document.getElementById(`sale-price-${activeKey}`);
+                        if (activeSalePrice) activeSalePrice.innerText = `₹${data.item_total}`;
+
+                        const activeMrpPrice = document.getElementById(`mrp-${activeKey}`);
+                        if (activeMrpPrice) activeMrpPrice.innerText = `₹${data.item_mrp_total}`;
+
+                        // Update item total (if visible)
+                        const activeItemTotal = document.getElementById(`item-total-${activeKey}`);
+                        if (activeItemTotal) activeItemTotal.innerText = `₹${data.item_total}`;
+
+                        // Update summary totals
+                        document.getElementById('subtotal-val').innerText = `₹${data.subtotal}`;
+                        document.getElementById('grand-total-val').innerText = `₹${data.grand_total}`;
+                        document.getElementById('cart-count-val').innerText = data.cart_count;
+
+                        if (data.discount_amount > 0) {
+                            document.getElementById('coupon-row').style.display = 'flex';
+                            document.getElementById('discount-val').innerText = `-₹${data.discount_amount}`;
+                        } else {
+                            document.getElementById('coupon-row').style.display = 'none';
+                        }
+
+                        if (data.cart_count === 0) {
+                            window.location.reload(); // If cart becomes empty, reload to show empty state
+                        }
+                    } else if (data.status === 'error') {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating cart:', error);
+                });
+        }
+    });
+</script>
+{% endblock %}

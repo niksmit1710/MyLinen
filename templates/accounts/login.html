@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load socialaccount %}
+
+{% block content %}
+<style>
+    .auth-wrapper {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px;
+        background: #fff;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 400px;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .brand-section {
+        margin-bottom: 40px;
+    }
+
+    .brand-name {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #000;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .brand-tagline {
+        font-size: 0.85rem;
+        color: #666;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+
+    .social-section {
+        margin-bottom: 30px;
+    }
+
+    .social-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        padding: 14px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #000;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .social-btn:hover {
+        background: #f9f9f9;
+        border-color: #ccc;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .social-btn img {
+        width: 20px;
+        height: 20px;
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        margin: 30px 0;
+        color: #999;
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: #eee;
+    }
+
+    .divider span {
+        padding: 0 15px;
+    }
+
+    .mobile-form-section {
+        text-align: left;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .input-group {
+        display: flex;
+        border-bottom: 2px solid #000;
+        margin-bottom: 30px;
+        padding: 5px 0;
+    }
+
+    .country-code {
+        font-size: 1.1rem;
+        font-weight: 500;
+        padding-right: 10px;
+        color: #000;
+        display: flex;
+        align-items: center;
+    }
+
+    .mobile-input {
+        flex: 1;
+        border: none;
+        font-size: 1.1rem;
+        font-weight: 500;
+        outline: none;
+        background: transparent;
+        letter-spacing: 1px;
+    }
+
+    .mobile-input::placeholder {
+        color: #ccc;
+    }
+
+    .submit-btn {
+        width: 100%;
+        background: #000;
+        color: #fff;
+        border: none;
+        padding: 16px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        cursor: pointer;
+        transition: opacity 0.3s;
+    }
+
+    .submit-btn:hover {
+        opacity: 0.9;
+    }
+
+    .auth-footer {
+        margin-top: 40px;
+        font-size: 0.85rem;
+        color: #666;
+        line-height: 1.6;
+    }
+
+    .auth-footer a {
+        color: #000;
+        font-weight: 700;
+        text-decoration: none;
+        border-bottom: 1px solid #000;
+    }
+</style>
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <header class="brand-section">
+            <h1 class="brand-name">MyLinen</h1>
+            <p class="brand-tagline">Premium Linen Collection</p>
+        </header>
+
+        <div class="social-section">
+            <a href="{% provider_login_url 'google' %}" class="social-btn">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                Continue with Google
+            </a>
+        </div>
+
+        <div class="divider">
+            <span>OR</span>
+        </div>
+
+        <div class="mobile-form-section">
+            <form method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                <label class="form-label">Enter Mobile Number</label>
+                <div class="input-group">
+                    <span class="country-code">+91</span>
+                    <input type="tel" name="mobile" class="mobile-input" placeholder="__________" maxlength="10" required>
+                </div>
+                
+                <button type="submit" class="submit-btn">Continue (Send OTP)</button>
+            </form>
+        </div>
+
+        <footer class="auth-footer">
+            <p>New here? We'll create your account</p>
+            <p style="margin-top: 10px;">Already have an account? <a href="{% url 'login' %}">Sign In</a></p>
+        </footer>
+    </div>
+</div>
+{% endblock %}

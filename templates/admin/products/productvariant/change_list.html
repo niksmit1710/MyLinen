@@ -1,0 +1,291 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block object-tools-items %}
+    <li>
+        <button type="button" id="bulk-price-btn" class="button" style="background: var(--button-bg, #79aec8); color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">
+            <span class="icon"></span> {% trans "Bulk Price Update" %}
+        </button>
+    </li>
+    {{ block.super }}
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* Premium Modal Styles */
+    #bulk-price-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+    }
+    .modal-content {
+        background-color: var(--body-bg, #fff);
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 12px;
+        width: 600px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+        border: 1px solid var(--border-color, #eee);
+    }
+    .modal-header {
+        padding: 16px 24px;
+        background: var(--primary, #79aec8);
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h2 {
+        margin: 0;
+        color: white;
+        font-size: 1.25rem;
+    }
+    .modal-body {
+        padding: 24px;
+    }
+    .modal-footer {
+        padding: 16px 24px;
+        background: var(--darkened-bg, #f8f8f8);
+        border-top: 1px solid var(--border-color, #eee);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    .form-field {
+        margin-bottom: 16px;
+    }
+    .form-field label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: var(--body-loud-color, #444);
+    }
+    .form-field select, .form-field input[type="number"], .form-field input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--border-color, #ccc);
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    .preview-box {
+        margin-top: 20px;
+        padding: 16px;
+        background: var(--body-bg, #fff);
+        border: 1px solid var(--border-color, #ccc);
+        border-radius: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+        color: var(--body-quiet-color, #666);
+    }
+    .preview-item {
+        font-size: 0.9rem;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border-color, #eee);
+        display: flex;
+        justify-content: space-between;
+        color: var(--body-loud-color, #333);
+    }
+    .preview-item strong {
+        color: var(--primary, #417690);
+    }
+    .preview-item:last-child { border: none; }
+    .btn-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+    .btn-apply { background: #417690; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-preview { background: #e0e0e0; border: 1px solid #ccc; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .btn-cancel { background: #ba2121; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    
+    .status-msg { margin-top: 10px; font-weight: bold; }
+    .error { color: #ba2121; }
+    .success { color: #264b31; }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+
+<!-- Bulk Price Modal -->
+<div id="bulk-price-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>{% trans "Bulk Price Update" %}</h2>
+            <button type="button" class="btn-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="bulk-price-form">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>{% trans "Operation" %}</label>
+                        <select name="operation" id="op-select" onchange="toggleInputs()">
+                            <option value="increase_percent">{% trans "Increase by %" %}</option>
+                            <option value="decrease_percent">{% trans "Decrease by %" %}</option>
+                            <option value="set_price">{% trans "Set New Selling Price" %}</option>
+                            <option value="set_mrp">{% trans "Set New MRP" %}</option>
+                            <option value="sync_mrp">{% trans "Sync MRP = Price" %}</option>
+                            <optgroup label="Sale Mode">
+                                <option value="apply_sale_percent">{% trans "Apply Sale Discount (to Price)" %}</option>
+                                <option value="activate_sale">{% trans "Activate Sale Mode" %}</option>
+                                <option value="deactivate_sale">{% trans "Deactivate Sale Mode" %}</option>
+                                <option value="set_sale_dates">{% trans "Set Sale Start/End Dates" %}</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-field" id="val-field">
+                        <label>{% trans "Value" %}</label>
+                        <input type="number" name="value" step="0.01" min="0" value="0" id="val-input">
+                    </div>
+                    <div class="form-field" id="scope-field">
+                        <label>{% trans "Scope" %}</label>
+                        <select name="scope">
+                            <option value="price">{% trans "Selling Price Only" %}</option>
+                            <option value="mrp">{% trans "MRP Only" %}</option>
+                            <option value="both">{% trans "Both Price & MRP" %}</option>
+                            <option value="sale">{% trans "Sale Price Only" %}</option>
+                        </select>
+                    </div>
+                    <div class="form-field" id="round-field" style="display: flex; align-items: center; gap: 10px; padding-top: 30px;">
+                        <input type="checkbox" name="round_to_nearest" id="round-check">
+                        <label for="round-check" style="margin: 0;">{% trans "Round to nearest integer" %}</label>
+                    </div>
+                    <div class="form-field sale-date-field" style="display: none;">
+                        <label>{% trans "Sale Start" %}</label>
+                        <input type="datetime-local" name="sale_start">
+                    </div>
+                    <div class="form-field sale-date-field" style="display: none;">
+                        <label>{% trans "Sale End" %}</label>
+                        <input type="datetime-local" name="sale_end">
+                    </div>
+                </div>
+
+                <div id="status-msg" class="status-msg"></div>
+                <div id="preview-area" class="preview-box"></div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-preview" onclick="runAction(true)">{% trans "Preview Changes" %}</button>
+            <button type="button" class="btn-apply" onclick="runAction(false)">{% trans "Apply Updates" %}</button>
+            <button type="button" class="btn-cancel" onclick="closeModal()">{% trans "Cancel" %}</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('bulk-price-modal');
+    const bulkBtn = document.getElementById('bulk-price-btn');
+    const form = document.getElementById('bulk-price-form');
+    const previewArea = document.getElementById('preview-area');
+    const statusMsg = document.getElementById('status-msg');
+    const opSelect = document.getElementById('op-select');
+    const valField = document.getElementById('val-field');
+    const scopeField = document.getElementById('scope-field');
+    const roundField = document.getElementById('round-field');
+    const dateFields = document.querySelectorAll('.sale-date-field');
+
+    function toggleInputs() {
+        const op = opSelect.value;
+        const isSaleDate = op === 'set_sale_dates';
+        const isToggle = op === 'activate_sale' || op === 'deactivate_sale';
+        const isSync = op === 'sync_mrp';
+
+        valField.style.display = (isSaleDate || isToggle || isSync) ? 'none' : 'block';
+        scopeField.style.display = (isSaleDate || isToggle || isSync || op.startsWith('apply_sale') || op === 'set_price' || op === 'set_mrp') ? 'none' : 'block';
+        roundField.style.display = (isSaleDate || isToggle || isSync) ? 'none' : 'flex';
+        dateFields.forEach(f => f.style.display = isSaleDate ? 'block' : 'none');
+    }
+
+    function getSelectedIds() {
+        return Array.from(document.querySelectorAll('input[name="_selected_action"]:checked'))
+            .map(cb => cb.value);
+    }
+
+    bulkBtn.onclick = function() {
+        const ids = getSelectedIds();
+        if (ids.length === 0) {
+            alert('{% trans "Please select at least one item." %}');
+            return;
+        }
+        modal.style.display = "block";
+        previewArea.style.display = "none";
+        statusMsg.innerHTML = '';
+    }
+
+    function closeModal() {
+        modal.style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) closeModal();
+    }
+
+    async function runAction(isPreview) {
+        const ids = getSelectedIds();
+        const formData = new FormData(form);
+        
+        // Add IDs to formData
+        ids.forEach(id => formData.append('ids', id));
+        if (isPreview) formData.append('preview', '1');
+
+        statusMsg.innerHTML = '{% trans "Processing..." %}';
+        statusMsg.className = 'status-msg';
+
+        try {
+            const response = await fetch('bulk-price/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                if (isPreview) {
+                    renderPreview(data.changes);
+                    statusMsg.innerHTML = '{% trans "Preview loaded." %}';
+                } else {
+                    statusMsg.innerHTML = '{% trans "Success! Reloading..." %}';
+                    statusMsg.classList.add('success');
+                    setTimeout(() => window.location.reload(), 1000);
+                }
+            } else {
+                statusMsg.innerHTML = data.message || '{% trans "An error occurred." %}';
+                statusMsg.classList.add('error');
+            }
+        } catch (error) {
+            statusMsg.innerHTML = '{% trans "Network error." %}';
+            statusMsg.classList.add('error');
+        }
+    }
+
+    function renderPreview(changes) {
+        previewArea.innerHTML = '<strong>{% trans "Preview (Sample of first 10 items):" %}</strong>';
+        changes.slice(0, 10).forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'preview-item';
+            div.innerHTML = `<span>${item.name}</span> <span>${item.old} &rarr; <strong>${item.new}</strong></span>`;
+            previewArea.appendChild(div);
+        });
+        previewArea.style.display = "block";
+    }
+</script>
+{% endblock %}

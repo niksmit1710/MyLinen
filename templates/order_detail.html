@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="order-detail-page">
+    <div class="container-small">
+        <header class="detail-header">
+            <div class="header-main">
+                <a href="{% url 'my_orders' %}" class="back-link">← Back to My Orders</a>
+                <h1 class="page-title">Order #ML-{{ order.id }}</h1>
+            </div>
+            <div class="header-actions">
+                {% if order.status == 'delivered' %}
+                <a href="{% url 'reorder' order.id %}" class="reorder-btn">
+                    <i class="fa-solid fa-rotate-left"></i> REORDER ITEMS
+                </a>
+                {% endif %}
+                <a href="{% url 'download_invoice' order.id %}" class="invoice-btn">
+                    <i class="fa-solid fa-file-pdf"></i> Download Invoice
+                </a>
+            </div>
+        </header>
+
+        <section class="detail-section tracking-card">
+            <h2 class="section-subtitle">Order Journey</h2>
+            <div class="timeline-container">
+                {% for step in timeline %}
+                <div
+                    class="timeline-step {% if step.completed %}is-completed{% endif %} {% if step.active %}is-active{% endif %}">
+                    <div class="step-marker">
+                        <div class="marker-dot"></div>
+                    </div>
+                    <div class="step-content">
+                        <p class="step-label">{{ step.label }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% if order.status == 'delivered' %}
+        <div class="return-eligibility-banner">
+            {% if return_eligible %}
+            <i class="fa-solid fa-shield-check"></i>
+            <span>Eligible for return/exchange until <strong>{{ return_deadline|date:"M d, Y" }}</strong></span>
+            {% else %}
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Return/exchange window has closed</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="detail-grid">
+            <div class="items-column">
+                <h2 class="section-subtitle">Purchased Items</h2>
+                <div class="items-list">
+                    {% for item in order.items.all %}
+                    <div class="detail-item-card" id="item-card-{{ item.id }}">
+                        <div class="item-thumbnail">
+                            <a href="{% if item.variant %}{% url 'product_detail' item.variant.product.id %}{% else %}#{% endif %}">
+                                {% if item.variant.primary_image %}
+                                <img src="{{ item.variant.primary_image.url }}" alt="{{ item.product_name_at_purchase }}">
+                                {% else %}
+                                <div class="image-placeholder"></div>
+                                {% endif %}
+                            </a>
+                        </div>
+
+                        <div class="item-info">
+                            <h3>
+                                <a href="{% if item.variant %}{% url 'product_detail' item.variant.product.id %}{% else %}#{% endif %}" class="product-link">
+                                    {{ item.product_name_at_purchase }}
+                                </a>
+                            </h3>
+                            <p class="meta">Color: {{ item.color_at_purchase }} | Size: {{ item.size_at_purchase }} | Qty: {{ item.quantity }}</p>
+                            <p class="item-price">Rs. {{ item.price|floatformat:2 }}</p>
+                        </div>
+
+                        <div class="item-actions">
+                            {% if return_eligible %}
+                            {% if item.id not in existing_requests %}
+                            <button class="return-exchange-btn return-btn"
+                                onclick="openReturnModal({{ item.id }}, 'return', '{{ item.product_name_at_purchase|escapejs }}')">
+                                <i class="fa-solid fa-rotate-left"></i> Return
+                            </button>
+                            <button class="return-exchange-btn exchange-btn"
+                                onclick="openReturnModal({{ item.id }}, 'exchange', '{{ item.product_name_at_purchase|escapejs }}')">
+                                <i class="fa-solid fa-right-left"></i> Exchange
+                            </button>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% for req_item_id, req in existing_requests.items %}
+                    {% if req_item_id == item.id %}
+                    <div class="return-status-card">
+                        <div class="return-status-header">
+                            <span class="return-type-label {{ req.request_type }}">
+                                <i
+                                    class="fa-solid {% if req.request_type == 'return' %}fa-rotate-left{% else %}fa-right-left{% endif %}"></i>
+                                {{ req.get_request_type_display }} Request
+                            </span>
+                            <span class="return-status-badge status-{{ req.status }}">{{ req.get_status_display }}</span>
+                        </div>
+                        <p class="return-reason-text">
+                            <strong>Reason:</strong> {{ req.get_reason_display }}
+                            {% if req.comment %} — {{ req.comment }}{% endif %}
+                        </p>
+                        {% if req.exchange_size %}
+                        <p class="return-reason-text"><strong>New Size:</strong> {{ req.exchange_size.name }}</p>
+                        {% endif %}
+                        {% if req.admin_notes %}
+                        <p class="return-admin-note"><i class="fa-solid fa-message"></i> Admin: {{ req.admin_notes }}
+                        </p>
+                        {% endif %}
+                        <div class="return-mini-timeline">
+                            <div
+                                class="mini-step {% if req.status in 'pending approved pickup_scheduled completed' %}done{% endif %}">
+                                <div class="mini-dot"></div><span>Requested</span>
+                            </div>
+                            <div
+                                class="mini-step {% if req.status in 'approved pickup_scheduled completed' %}done{% endif %} {% if req.status == 'rejected' %}rejected{% endif %}">
+                                <div class="mini-dot"></div><span>{% if req.status == 'rejected' %}Rejected{% else %}Approved{% endif %}</span>
+                            </div>
+                            <div class="mini-step {% if req.status in 'pickup_scheduled completed' %}done{% endif %}">
+                                <div class="mini-dot"></div><span>Pickup</span>
+                            </div>
+                            <div class="mini-step {% if req.status == 'completed' %}done{% endif %}">
+                                <div class="mini-dot"></div><span>Completed</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% empty %}
+                    <p class="empty-msg">No items found for this order.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <aside class="info-column">
+                <div class="info-card">
+                    <h2 class="section-subtitle">Order Summary</h2>
+                    <div class="info-row">
+                        <span>Status</span>
+                        <span class="badge">{{ order.get_status_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Estimated Delivery</span>
+                        <span>{{ order.estimated_delivery_date|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Payment</span>
+                        <span>{{ order.get_payment_method_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Payment Status</span>
+                        <span class="{% if order.is_paid %}paid-text{% else %}pending-text{% endif %}">
+                            {% if order.is_paid %}Paid{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                    <div class="info-row grand-total">
+                        <span>Total Amount</span>
+                        <span>Rs. {{ order.total_amount|floatformat:2 }}</span>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h2 class="section-subtitle">Shipping To</h2>
+                    <address class="shipping-address">
+                        <strong>{{ order.full_name }}</strong><br>
+                        {{ order.email }} | {{ order.phone_number }}<br>
+                        {{ order.address }}<br>
+                        {{ order.city }}, {{ order.state }} - {{ order.pincode }}
+                    </address>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Return/Exchange Modal -->
+    <div class="return-modal-overlay" id="return-modal" style="display:none;">
+        <div class="return-modal">
+            <button class="return-modal-close" onclick="closeReturnModal()">×</button>
+            <h2 class="return-modal-title" id="return-modal-title">Return Item</h2>
+            <p class="return-modal-product" id="return-modal-product"></p>
+
+            <form id="return-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="order_item_id" id="return-item-id">
+                <input type="hidden" name="request_type" id="return-type">
+
+                <div class="return-form-group">
+                    <label>Type</label>
+                    <div class="return-type-toggle" id="return-type-toggle">
+                        <button type="button" class="type-btn active" data-type="return"
+                            onclick="setReturnType('return')">
+                            <i class="fa-solid fa-rotate-left"></i> Return
+                        </button>
+                        <button type="button" class="type-btn" data-type="exchange" onclick="setReturnType('exchange')">
+                            <i class="fa-solid fa-right-left"></i> Exchange
+                        </button>
+                    </div>
+                </div>
+
+                <div class="return-form-group" id="exchange-size-group" style="display:none;">
+                    <label>New Size</label>
+                    <select name="exchange_size_id" id="exchange-size-select" class="return-select">
+                        <option value="">Select size…</option>
+                    </select>
+                </div>
+
+                <div class="return-form-group">
+                    <label>Reason</label>
+                    <select name="reason" class="return-select" required>
+                        <option value="">Select a reason…</option>
+                        {% for val, label in return_reasons %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="return-form-group">
+                    <label>Additional Comments <span style="color:#aaa;">(Optional)</span></label>
+                    <textarea name="comment" class="return-textarea" rows="3"
+                        placeholder="Provide more details…"></textarea>
+                </div>
+
+                <div class="return-form-group">
+                    <label>Upload Photos <span style="color:#aaa;">(Optional — max 5)</span></label>
+                    <div class="return-upload-zone" id="return-upload-zone">
+                        <input type="file" name="images" id="return-images-input" multiple
+                            accept=".jpg,.jpeg,.png,.webp" style="display:none;">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Drag & drop or <span class="upload-browse">browse</span></p>
+                    </div>
+                    <div class="return-preview-grid" id="return-preview-grid"></div>
+                </div>
+
+                <button type="submit" class="return-submit-btn" id="return-submit-btn">SUBMIT REQUEST</button>
+                <p class="return-msg" id="return-msg"></p>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script>
+    // ========== ITEM SIZES DATA ==========
+    const itemSizes = {};
+
+    {% for item in order.items.all %}
+    itemSizes[{{ item.id }}] = [
+        {% if item.variant %}
+            {% for ss in item.variant.size_stocks.all %}
+            { id: {{ ss.size.id }}, name: "{{ ss.size.name }}", stock: {{ ss.stock }} },
+            {% endfor %}
+        {% endif %}
+    ];
+    {% endfor %}
+
+    // ========== MODAL CONTROL ==========
+    function openReturnModal(itemId, type, productName) {
+        document.getElementById('return-item-id').value = itemId;
+        document.getElementById('return-modal-product').textContent = productName;
+        setReturnType(type);
+        document.getElementById('return-modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // Populate sizes for exchange
+        const sizeSelect = document.getElementById('exchange-size-select');
+        sizeSelect.innerHTML = '<option value="">Select size…</option>';
+        if (itemSizes[itemId]) {
+            itemSizes[itemId].forEach(s => {
+                if (s.stock > 0) {
+                    sizeSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.stock} in stock)</option>`;
+                }
+            });
+        }
+    }
+
+    function closeReturnModal() {
+        document.getElementById('return-modal').style.display = 'none';
+        document.body.style.overflow = '';
+        document.getElementById('return-form').reset();
+        document.getElementById('return-preview-grid').innerHTML = '';
+        document.getElementById('return-msg').textContent = '';
+        returnSelectedFiles = [];
+    }
+
+    function setReturnType(type) {
+        document.getElementById('return-type').value = type;
+        document.querySelectorAll('.type-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.type === type);
+        });
+        document.getElementById('exchange-size-group').style.display = type === 'exchange' ? 'block' : 'none';
+        document.getElementById('return-modal-title').textContent =
+            type === 'return' ? 'Return Item' : 'Exchange Item';
+    }
+
+    // ========== IMAGE UPLOAD ==========
+    let returnSelectedFiles = [];
+    const returnUploadZone = document.getElementById('return-upload-zone');
+    const returnFileInput = document.getElementById('return-images-input');
+    const returnPreviewGrid = document.getElementById('return-preview-grid');
+
+    if (returnUploadZone) {
+        returnUploadZone.addEventListener('click', () => returnFileInput.click());
+        returnUploadZone.addEventListener('dragover', e => { e.preventDefault(); returnUploadZone.classList.add('drag-over'); });
+        returnUploadZone.addEventListener('dragleave', () => returnUploadZone.classList.remove('drag-over'));
+        returnUploadZone.addEventListener('drop', e => {
+            e.preventDefault();
+            returnUploadZone.classList.remove('drag-over');
+            handleReturnFiles(e.dataTransfer.files);
+        });
+        returnFileInput.addEventListener('change', () => handleReturnFiles(returnFileInput.files));
+    }
+
+    function handleReturnFiles(fileList) {
+        const msgEl = document.getElementById('return-msg');
+        for (const file of fileList) {
+            if (returnSelectedFiles.length >= 5) {
+                msgEl.textContent = 'Maximum 5 images allowed.';
+                msgEl.style.color = '#e74c3c';
+                break;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                msgEl.textContent = `"${file.name}" exceeds 2MB.`;
+                msgEl.style.color = '#e74c3c';
+                continue;
+            }
+            returnSelectedFiles.push(file);
+            const reader = new FileReader();
+            reader.onload = e => {
+                const div = document.createElement('div');
+                div.className = 'review-preview-item';
+                div.innerHTML = `<img src="${e.target.result}" alt="Preview"><button type="button" class="preview-remove" onclick="removeReturnPreview(this)">×</button>`;
+                returnPreviewGrid.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+        syncReturnInput();
+    }
+
+    function removeReturnPreview(btn) {
+        const item = btn.parentElement;
+        const idx = Array.from(returnPreviewGrid.children).indexOf(item);
+        if (idx > -1) returnSelectedFiles.splice(idx, 1);
+        item.remove();
+        syncReturnInput();
+    }
+
+    function syncReturnInput() {
+        const dt = new DataTransfer();
+        returnSelectedFiles.forEach(f => dt.items.add(f));
+        returnFileInput.files = dt.files;
+    }
+
+    // ========== AJAX SUBMIT ==========
+    let isReturnSubmitting = false;
+    const returnForm = document.getElementById('return-form');
+
+    if (returnForm) {
+        returnForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (isReturnSubmitting) return;
+
+            const msgEl = document.getElementById('return-msg');
+            const submitBtn = document.getElementById('return-submit-btn');
+            const formData = new FormData(this);
+
+            isReturnSubmitting = true;
+            submitBtn.textContent = 'SUBMITTING…';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+
+            fetch("{% url 'submit_return_request' order.id %}", {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        msgEl.textContent = '✓ ' + data.message;
+                        msgEl.style.color = '#4CAF50';
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        msgEl.textContent = data.message;
+                        msgEl.style.color = '#e74c3c';
+                    }
+                })
+                .catch(() => {
+                    msgEl.textContent = 'Something went wrong. Please try again.';
+                    msgEl.style.color = '#e74c3c';
+                })
+                .finally(() => {
+                    isReturnSubmitting = false;
+                    submitBtn.textContent = 'SUBMIT REQUEST';
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                });
+        });
+    }
+
+    // Close modal on overlay click or Escape
+    document.getElementById('return-modal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeReturnModal();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeReturnModal();
+    });
+</script>
+{% endblock %}

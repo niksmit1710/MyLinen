@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="success-page">
+    <div class="success-card">
+        <div class="success-icon-wrapper">
+            <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+            </svg>
+        </div>
+
+        <header class="success-header">
+            <p class="pre-title">THANK YOU</p>
+            <h1 class="success-title">Your order is confirmed</h1>
+            <p class="success-subtitle">We’re getting your linen pieces ready for their new home.</p>
+        </header>
+
+        <section class="order-details-box">
+            <div class="detail-row">
+                <span class="label">Order ID</span>
+                <span class="value">#ML-{{ order.id }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Total Amount</span>
+                <span class="value">₹{{ order.total_amount|floatformat:2 }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Payment</span>
+                <span class="value">
+                    {% if order.payment_method == 'cod' %}Cash on Delivery{% else %}Online Payment{% endif %}
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Estimated Delivery</span>
+                <span class="value">{{ order.estimated_delivery_date|date:"M d, Y" }}</span>
+            </div>
+        </section>
+
+        <div class="success-actions">
+            <a href="{% url 'home' %}" class="primary-btn">CONTINUE SHOPPING</a>
+            <a href="{% url 'order_detail' order.id %}" class="secondary-link">View Order Status</a>
+        </div>
+
+        <footer class="success-footer">
+            <p>A confirmation email has been sent to your inbox.</p>
+            <p>Need help? <a href="mailto:support@mylinen.com">Contact Support</a></p>
+        </footer>
+    </div>
+</main>
+{% endblock %}

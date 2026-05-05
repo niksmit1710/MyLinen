@@ -1,0 +1,810 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="pdp-container">
+    <div class="pdp-grid">
+        <div class="pdp-gallery">
+            <div class="thumbnails-list" id="thumbnails-container">
+                {% for var in variants %}
+                <div class="variant-thumbnails" id="thumbs-variant-{{ var.id }}" style="{% if var != default_variant %}display:none;{% endif %}">
+                    {% if var.image %}
+                    <img src="{{ var.image.url }}" class="thumb active" onclick="changeImage(this.src)" loading="lazy">
+                    {% endif %}
+                    {% for img in var.images.all %}
+                    <img src="{{ img.image.url }}" class="thumb {% if not var.image and forloop.first %}active{% endif %}" onclick="changeImage(this.src)" loading="lazy">
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+                <!-- Legacy Product Images (if no variant images exist or as extra) -->
+                {% if not default_variant.images.all and not default_variant.image %}
+                    <div class="variant-thumbnails product-legacy-images">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" class="thumb" onclick="changeImage(this.src)" loading="lazy">
+                        {% endif %}
+                        {% for img in product.deprecated_images.all %}
+                        <img src="{{ img.image.url }}" class="thumb" onclick="changeImage(this.src)" loading="lazy">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="main-image-wrapper">
+                {% if product.primary_image %}
+                <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" id="main-product-image">
+                {% else %}
+                <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" id="main-product-image">
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="pdp-details">
+            <nav class="breadcrumbs">Home / Shop / {{ product.category }}</nav>
+
+            <div class="title-row">
+                <h1 class="pdp-title">{{ product.name }}</h1>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <button id="share-btn" class="wishlist-icon-btn" title="Share" onclick="navigator.clipboard.writeText(window.location.href); alert('Product link copied to clipboard!');">
+                        <i class="fa-solid fa-share-nodes" style="color: #7a7a72;"></i>
+                    </button>
+                    <button id="wishlist-btn" data-product-id="{{ product.id }}" class="wishlist-icon-btn" title="Add to Wishlist">
+                        <i class="{% if in_wishlist %}fa-solid{% else %}fa-regular{% endif %} fa-heart"
+                            style="color: {% if in_wishlist %}#e74c3c{% else %}#7a7a72{% endif %};"></i>
+                    </button>
+                </div>
+            </div>
+
+            {% if review_count > 0 %}
+            <a href="#reviews-section" class="pdp-rating-link">
+                <div class="pdp-rating-stars">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= avg_rating %}
+                        <i class="fa-solid fa-star"></i>
+                        {% else %}
+                        <i class="fa-regular fa-star"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <span class="pdp-rating-avg">{{ avg_rating }}</span>
+                <span class="pdp-rating-count">({{ review_count }} Review{{ review_count|pluralize }})</span>
+            </a>
+            {% endif %}
+
+            <div class="pdp-price-container" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+                <span class="pdp-mrp" id="display-mrp" style="text-decoration: line-through; color: #888; font-size: 16px; {% if not default_variant.current_mrp or default_variant.current_mrp <= default_variant.current_price %}display:none;{% endif %}">₹{{ default_variant.current_mrp|floatformat:2 }}</span>
+                <span class="pdp-original-price" id="display-original-price" style="text-decoration: line-through; color: #999; font-size: 18px; {% if not default_variant.is_on_sale %}display:none;{% endif %}">₹{{ default_variant.price|floatformat:2 }}</span>
+                <p class="pdp-price" id="display-price" style="margin-bottom: 0; {% if default_variant.is_on_sale %}color: #ba2121; font-weight: bold;{% endif %}">₹{{ default_variant.current_price|floatformat:2 }}</p>
+                <span class="pdp-discount-badge" id="display-discount" style="background-color: #1a1a18; color: #fff; padding: 4px 8px; font-size: 12px; font-weight: bold; {% if not default_variant.product.discount_percentage %}display:none;{% endif %}">{% if default_variant.product.discount_percentage %}{{ default_variant.product.discount_percentage }}% OFF{% endif %}</span>
+            </div>
+
+            <div class="pdp-description">
+                <p>{{ product.description }}</p>
+            </div>
+
+            <form method="POST" action="{% url 'add_to_cart' product.id %}" class="pdp-form" id="add-to-cart-form">
+                {% csrf_token %}
+                <input type="hidden" name="variant_id" id="selected-variant-id" value="{{ default_variant.id }}">
+
+                <!-- Color Selection -->
+                {% if variants|length > 1 %}
+                <div class="form-group">
+                    <label class="label-title">Select Color: <span id="selected-color-name" style="font-weight: 400; color: #666;">{{ default_variant.color.name }}</span></label>
+                    <div class="color-selector">
+                        {% for var in variants %}
+                        <div class="color-swatch-wrapper">
+                            <input type="radio" name="color_id" value="{{ var.color.id }}" id="color-{{ var.id }}" 
+                            {% if var == default_variant %}checked{% endif %} class="color-input" data-variant-id="{{ var.id }}" onchange="selectVariant({{ var.id }})">
+                            <label for="color-{{ var.id }}" class="color-swatch" style="background-color: {{ var.color.hex_code }};" title="{{ var.color.name }}"></label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Size Selection -->
+                <div class="form-group">
+                    <label class="label-title">Select Size</label>
+                    <div class="size-selector" id="size-selector-container">
+                        {% if default_variant.size_stocks.all %}
+                            {% for stock in default_variant.size_stocks.all %}
+                            <input type="radio" name="size_id" value="{{ stock.size.id }}" id="size-{{ stock.size.id }}" 
+                            {% if forloop.first %}checked{% endif %} {% if stock.stock == 0 %}disabled{% endif %}>
+                            <label for="size-{{ stock.size.id }}" class="size-box {% if stock.stock == 0 %}out-of-stock{% endif %}">
+                                {{ stock.size.name }}
+                                <span class="stock-count">{{ stock.stock }} left</span>
+                            </label>
+                            {% endfor %}
+                        {% else %}
+                            {% for stock in product.deprecated_size_stocks.all %}
+                            <input type="radio" name="size_id" value="{{ stock.size.id }}" id="size-{{ stock.size.id }}" 
+                            {% if forloop.first %}checked{% endif %} {% if stock.stock == 0 %}disabled{% endif %}>
+                            <label for="size-{{ stock.size.id }}" class="size-box {% if stock.stock == 0 %}out-of-stock{% endif %}">
+                                {{ stock.size.name }}
+                                <span class="stock-count">{{ stock.stock }} left</span>
+                            </label>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="label-title">Quantity</label>
+                    <div class="quantity-input">
+                        <button type="button" onclick="decrementQty()">-</button>
+                        <input type="number" name="quantity" id="pdp-qty" value="1" min="1">
+                        <button type="button" onclick="incrementQty()">+</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="primary-btn add-to-cart-btn" id="pdp-submit-btn">
+                    ADD TO BAG
+                </button>
+            </form>
+
+            <div class="pdp-extra-info">
+                <details open>
+                    <summary>Sustainability & Fabric</summary>
+                    <p>100% Organic Linen. Ethically sourced and dyed with natural pigments.</p>
+                </details>
+                <details>
+                    <summary>Shipping & Returns</summary>
+                    <p>Free shipping on orders over ₹2000. 14-day easy returns.</p>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews Section -->
+    <section class="reviews-section" id="reviews-section">
+        <div class="reviews-header">
+            <h2 class="reviews-title">RATINGS & REVIEWS</h2>
+            <p class="reviews-subtitle">{{ review_count }} Review{{ review_count|pluralize }}</p>
+        </div>
+
+        <div class="reviews-layout">
+            <!-- Rating Summary -->
+            <div class="rating-summary">
+                <div class="rating-big-number">
+                    <span class="big-avg" id="avg-rating-display">{{ avg_rating }}</span>
+                    <span class="out-of">/5</span>
+                </div>
+                <div class="rating-stars-summary">
+                    {% with avg_int=avg_rating|floatformat:"0" %}
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= avg_int|add:"0" %}
+                        <i class="fa-solid fa-star" style="color: #c8a96e;"></i>
+                        {% else %}
+                        <i class="fa-regular fa-star" style="color: #c8a96e;"></i>
+                        {% endif %}
+                    {% endfor %}
+                    {% endwith %}
+                </div>
+                <p class="total-reviews" id="total-reviews-display">Based on {{ review_count }} review{{ review_count|pluralize }}</p>
+
+                <!-- Rating Distribution Bars -->
+                <div class="rating-distribution">
+                    {% for bar in rating_bars %}
+                    <div class="dist-row">
+                        <span class="dist-label">{{ bar.star }} ★</span>
+                        <div class="dist-bar-track">
+                            <div class="dist-bar-fill" style="width: {{ bar.pct }}%;"></div>
+                        </div>
+                        <span class="dist-count">{{ bar.count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Write Review -->
+            <div class="write-review-box">
+            {% if user.is_authenticated and is_verified_buyer %}
+                <h3 class="write-review-title">
+                    {% if user_review %}UPDATE YOUR REVIEW{% else %}WRITE A REVIEW{% endif %}
+                </h3>
+                <form id="review-form" class="review-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="star-input-group">
+                        <label class="label-title">Your Rating</label>
+                        <div class="star-input" id="star-input">
+                            {% for i in "12345" %}
+                            <i class="{% if user_review and forloop.counter <= user_review.rating %}fa-solid{% else %}fa-regular{% endif %} fa-star star-pick" 
+                               data-value="{{ forloop.counter }}"></i>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="rating" id="rating-input" value="{{ user_review.rating|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="label-title">Review Title (Optional)</label>
+                        <input type="text" name="title" class="review-input" placeholder="Sum it up in a few words" 
+                               value="{{ user_review.title|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="label-title">Your Review</label>
+                        <textarea name="comment" class="review-textarea" rows="4" 
+                                  placeholder="What did you like or dislike? How was the fabric quality?">{{ user_review.comment|default:'' }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="label-title">Add Photos <span style="color:#aaa; font-weight:400;">(Optional — Max 5, 2MB each)</span></label>
+                        <div class="review-upload-zone" id="upload-zone">
+                            <input type="file" name="images" id="review-images-input" multiple accept=".jpg,.jpeg,.png,.webp" style="display:none;">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & drop images here or <span class="upload-browse">browse</span></p>
+                            <p class="upload-hint">JPG, PNG, WEBP — max 2MB per image</p>
+                        </div>
+                        <div class="review-preview-grid" id="preview-grid">
+                            {% for img in user_review_images %}
+                            <div class="review-preview-item existing-img" data-id="{{ img.id }}">
+                                <img src="{{ img.image.url }}" alt="Review image">
+                                <button type="button" class="preview-remove" onclick="this.parentElement.remove(); updateCounter();">×</button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p class="upload-counter" id="upload-counter"></p>
+                    </div>
+
+                    <button type="submit" class="review-submit-btn">
+                        {% if user_review %}UPDATE REVIEW{% else %}SUBMIT REVIEW{% endif %}
+                    </button>
+                    <p class="review-msg" id="review-msg"></p>
+                </form>
+                {% elif user.is_authenticated %}
+                <div class="login-to-review">
+                    <i class="fa-solid fa-bag-shopping" style="font-size: 28px; color: #c8a96e; margin-bottom: 15px;"></i>
+                    <p style="font-weight: 600; margin-bottom: 6px;">Verified Buyers Only</p>
+                    <p>Only customers who have purchased and received this product can write a review.</p>
+                </div>
+                {% else %}
+                <div class="login-to-review">
+                    <i class="fa-regular fa-comment-dots" style="font-size: 28px; color: #c8a96e; margin-bottom: 15px;"></i>
+                    <p>Please <a href="{% url 'login' %}?next={{ request.path }}">log in</a> to write a review.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reviews List -->
+        <div class="reviews-list" id="reviews-list">
+            {% for review in reviews %}
+            <div class="review-card">
+                <div class="review-card-header">
+                    <div class="review-stars">
+                        {% for s in review.star_range %}
+                        <i class="fa-solid fa-star" style="color: #c8a96e;"></i>
+                        {% endfor %}
+                        {% for s in review.empty_star_range %}
+                        <i class="fa-regular fa-star" style="color: #c8a96e;"></i>
+                        {% endfor %}
+                    </div>
+                    <span class="review-date">{{ review.created_at|date:"M d, Y" }}</span>
+                </div>
+                {% if review.title %}
+                <h4 class="review-card-title">{{ review.title }}</h4>
+                {% endif %}
+                <p class="review-card-comment">{{ review.comment }}</p>
+                {% if review.review_images.all %}
+                <div class="review-images-grid">
+                    {% for ri in review.review_images.all %}
+                    <img src="{{ ri.image.url }}" alt="Review photo" class="review-thumb" onclick="openLightbox(this)" data-full="{{ ri.image.url }}" loading="lazy">
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <p class="review-card-author">— {{ review.user.get_display_name }}</p>
+            </div>
+            {% empty %}
+            <div class="no-reviews">
+                <p>No reviews yet. Be the first to share your thoughts!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Lightbox Modal -->
+    <div class="review-lightbox" id="review-lightbox">
+        <div class="lightbox-overlay" onclick="closeLightbox()"></div>
+        <button class="lightbox-close" onclick="closeLightbox()">×</button>
+        <button class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="lightbox-content">
+            <img src="" alt="Review image" id="lightbox-img">
+        </div>
+        <button class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    
+    {{ variants_json|json_script:"variants-data" }}
+    
+    <script>
+    const variantsData = JSON.parse(document.getElementById('variants-data').textContent);
+    
+    function selectVariant(variantId) {
+        const variant = variantsData.find(v => v.id === variantId);
+        if (!variant) return;
+
+        // 1. Update hidden field
+        document.getElementById('selected-variant-id').value = variant.id;
+        
+        // 2. Update color name display
+        document.getElementById('selected-color-name').textContent = variant.color_name;
+
+        // 3. Update Price and MRP
+        const priceEl = document.getElementById('display-price');
+        const mrpEl = document.getElementById('display-mrp');
+        const originalPriceEl = document.getElementById('display-original-price');
+        const discountEl = document.getElementById('display-discount');
+
+        priceEl.textContent = `₹${Number(variant.price).toFixed(2)}`;
+        
+        if (variant.is_on_sale) {
+            originalPriceEl.textContent = `₹${Number(variant.original_price).toFixed(2)}`;
+            originalPriceEl.style.display = 'inline';
+            priceEl.style.color = '#ba2121';
+            priceEl.style.fontWeight = 'bold';
+        } else {
+            originalPriceEl.style.display = 'none';
+            priceEl.style.color = '';
+            priceEl.style.fontWeight = '';
+        }
+
+        const effectivePrice = Number(variant.price);
+        const mrp = variant.mrp ? Number(variant.mrp) : 0;
+
+        if (mrp > effectivePrice) {
+            mrpEl.textContent = `₹${mrp.toFixed(2)}`;
+            mrpEl.style.display = 'inline';
+            const pct = Math.round(((mrp - effectivePrice) / mrp) * 100);
+            discountEl.textContent = `${pct}% OFF`;
+            discountEl.style.display = 'inline';
+        } else {
+            mrpEl.style.display = 'none';
+            discountEl.style.display = 'none';
+        }
+
+        // 4. Update Images
+        // Hide all variant thumbnails, show current one
+        document.querySelectorAll('.variant-thumbnails').forEach(el => el.style.display = 'none');
+        const activeThumbs = document.getElementById(`thumbs-variant-${variant.id}`);
+        if (activeThumbs) {
+            activeThumbs.style.display = 'block';
+            // Set main image to the first thumb of this variant
+            const firstThumb = activeThumbs.querySelector('.thumb');
+            if (firstThumb) {
+                changeImage(firstThumb.src);
+            }
+        }
+
+        // 5. Update Sizes
+        const sizeContainer = document.getElementById('size-selector-container');
+        if (!sizeContainer) return;
+        
+        sizeContainer.innerHTML = ''; // Clear current sizes
+        
+        if (!variant.sizes || variant.sizes.length === 0) {
+            sizeContainer.innerHTML = '<p style="color: #888; font-size: 14px; margin: 10px 0;">No sizes available for this color.</p>';
+            return;
+        }
+
+        variant.sizes.forEach((s, idx) => {
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'size_id';
+            input.value = s.id;
+            input.id = `size-${s.id}`;
+            if (idx === 0 && s.stock > 0) input.checked = true;
+            if (s.stock === 0) input.disabled = true;
+
+            const label = document.createElement('label');
+            label.htmlFor = `size-${s.id}`;
+            label.className = `size-box ${s.stock === 0 ? 'out-of-stock' : ''}`;
+            label.innerHTML = `${s.name} <span class="stock-count">${s.stock} left</span>`;
+
+            sizeContainer.appendChild(input);
+            sizeContainer.appendChild(label);
+        });
+
+        // 6. Reset Add to Cart button
+        const submitBtn = document.getElementById('pdp-submit-btn');
+        submitBtn.innerText = 'ADD TO BAG';
+        submitBtn.setAttribute('data-added', 'false');
+        submitBtn.style.backgroundColor = '';
+        submitBtn.style.color = '';
+    }
+
+    // Initial selection
+    selectVariant({{ default_variant.id }});
+
+    // Thumbnails Logic
+    function changeImage(src) {
+        document.getElementById('main-product-image').src = src;
+        const thumbs = document.querySelectorAll('.thumb');
+        thumbs.forEach(thumb => {
+            thumb.classList.remove('active');
+            if (thumb.src === src) {
+                thumb.classList.add('active');
+            }
+        });
+    }
+
+    // Quantity Logic
+    function incrementQty() {
+        let input = document.getElementById('pdp-qty');
+        input.value = parseInt(input.value) + 1;
+    }
+    function decrementQty() {
+        let input = document.getElementById('pdp-qty');
+        if (input.value > 1) input.value = parseInt(input.value) - 1;
+    }
+
+    // Wishlist Logic
+    document.getElementById('wishlist-btn').addEventListener('click', function () {
+        const btn = this;
+        const icon = btn.querySelector('i');
+        const productId = btn.getAttribute('data-product-id');
+
+        const variantId = document.getElementById('selected-variant-id').value;
+        const formData = new FormData();
+        formData.append('variant_id', variantId);
+
+        fetch(`/wishlist/toggle/${productId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                if (response.status === 401) {
+                    window.location.href = "{% url 'login' %}?next={{ request.path }}";
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.status === 'success') {
+                    if (data.action === 'added') {
+                        icon.className = 'fa-solid fa-heart';
+                        icon.style.color = '#e74c3c';
+                        btn.style.transform = 'scale(1.2)';
+                        setTimeout(() => btn.style.transform = 'scale(1)', 200);
+                    } else {
+                        icon.className = 'fa-regular fa-heart';
+                        icon.style.color = '#7a7a72';
+                    }
+                }
+            });
+    });
+
+    // AJAX Add to Cart
+    document.getElementById('add-to-cart-form').addEventListener('submit', function (e) {
+        const form = this;
+        const submitBtn = document.getElementById('pdp-submit-btn');
+
+        if (submitBtn.getAttribute('data-added') === 'true') {
+            e.preventDefault();
+            window.location.href = "{% url 'cart_detail' %}";
+            return;
+        }
+
+        e.preventDefault();
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    submitBtn.innerText = 'GO TO BAG';
+                    submitBtn.setAttribute('data-added', 'true');
+                    submitBtn.style.backgroundColor = '#1a1a18';
+                    submitBtn.style.color = '#fff';
+
+                    // Update cart count badge
+                    const badge = document.getElementById('cart-badge-count');
+                    if (badge) {
+                        badge.innerText = data.cart_count;
+                        badge.style.display = data.cart_count > 0 ? 'flex' : 'none';
+                    }
+                } else {
+                    alert(data.message || 'Something went wrong');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
+
+    // ========== REVIEW SYSTEM ==========
+
+    // Interactive star rating picker
+    const starPicks = document.querySelectorAll('.star-pick');
+    const ratingInput = document.getElementById('rating-input');
+
+    if (starPicks.length) {
+        starPicks.forEach(star => {
+            star.addEventListener('mouseenter', function () {
+                const val = parseInt(this.getAttribute('data-value'));
+                starPicks.forEach(s => {
+                    const sv = parseInt(s.getAttribute('data-value'));
+                    s.className = sv <= val ? 'fa-solid fa-star star-pick' : 'fa-regular fa-star star-pick';
+                });
+            });
+            star.addEventListener('click', function () {
+                const val = this.getAttribute('data-value');
+                ratingInput.value = val;
+                const numVal = parseInt(val);
+                starPicks.forEach(s => {
+                    const sv = parseInt(s.getAttribute('data-value'));
+                    s.className = sv <= numVal ? 'fa-solid fa-star star-pick' : 'fa-regular fa-star star-pick';
+                });
+            });
+        });
+        document.getElementById('star-input').addEventListener('mouseleave', function () {
+            const currentVal = parseInt(ratingInput.value) || 0;
+            starPicks.forEach(s => {
+                const sv = parseInt(s.getAttribute('data-value'));
+                s.className = sv <= currentVal ? 'fa-solid fa-star star-pick' : 'fa-regular fa-star star-pick';
+            });
+        });
+    }
+
+    // ========== IMAGE UPLOAD ==========
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('review-images-input');
+    const previewGrid = document.getElementById('preview-grid');
+    let selectedFiles = []; // DataTransfer to track files
+    const MAX_FILES = 5;
+    const MAX_SIZE = 2 * 1024 * 1024;
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+    function updateCounter() {
+        const counter = document.getElementById('upload-counter');
+        if (!counter) return;
+        const existingCount = previewGrid ? previewGrid.querySelectorAll('.review-preview-item').length : 0;
+        counter.textContent = existingCount > 0 ? `${existingCount} / ${MAX_FILES} images` : '';
+    }
+
+    if (uploadZone && fileInput) {
+        // Click to browse
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // Drag & drop
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+    }
+
+    function handleFiles(fileList) {
+        const existingCount = previewGrid ? previewGrid.querySelectorAll('.review-preview-item').length : 0;
+        const msgEl = document.getElementById('review-msg');
+
+        for (const file of fileList) {
+            if (existingCount + selectedFiles.length >= MAX_FILES) {
+                msgEl.textContent = `Maximum ${MAX_FILES} images allowed.`;
+                msgEl.style.color = '#e74c3c';
+                break;
+            }
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                msgEl.textContent = `"${file.name}" is not a supported format.`;
+                msgEl.style.color = '#e74c3c';
+                continue;
+            }
+            if (file.size > MAX_SIZE) {
+                msgEl.textContent = `"${file.name}" exceeds the 2MB limit.`;
+                msgEl.style.color = '#e74c3c';
+                continue;
+            }
+            selectedFiles.push(file);
+            addPreview(file);
+        }
+        syncFileInput();
+        updateCounter();
+    }
+
+    function addPreview(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const div = document.createElement('div');
+            div.className = 'review-preview-item';
+            div.innerHTML = `
+                <img src="${e.target.result}" alt="Preview">
+                <button type="button" class="preview-remove">×</button>
+            `;
+            div.querySelector('.preview-remove').addEventListener('click', () => {
+                const idx = Array.from(previewGrid.querySelectorAll('.review-preview-item:not(.existing-img)')).indexOf(div);
+                if (idx > -1) selectedFiles.splice(idx, 0);
+                // Rebuild selectedFiles from remaining non-existing items
+                div.remove();
+                rebuildSelectedFiles();
+                syncFileInput();
+                updateCounter();
+            });
+            previewGrid.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function rebuildSelectedFiles() {
+        // Re-index: not strictly needed since we remove by element, but keep array consistent
+        const items = previewGrid.querySelectorAll('.review-preview-item:not(.existing-img)');
+        const newFiles = [];
+        items.forEach((item, i) => {
+            if (selectedFiles[i]) newFiles.push(selectedFiles[i]);
+        });
+        selectedFiles = newFiles;
+    }
+
+    function syncFileInput() {
+        const dt = new DataTransfer();
+        selectedFiles.forEach(f => dt.items.add(f));
+        if (fileInput) fileInput.files = dt.files;
+    }
+
+    // ========== LIGHTBOX ==========
+    let lightboxImages = [];
+    let lightboxIndex = 0;
+
+    function openLightbox(imgEl) {
+        const card = imgEl.closest('.review-card') || imgEl.closest('.review-images-grid')?.parentElement;
+        const thumbs = card ? card.querySelectorAll('.review-thumb') : [imgEl];
+        lightboxImages = Array.from(thumbs).map(t => t.getAttribute('data-full') || t.src);
+        lightboxIndex = lightboxImages.indexOf(imgEl.getAttribute('data-full') || imgEl.src);
+        if (lightboxIndex < 0) lightboxIndex = 0;
+        showLightboxImage();
+        document.getElementById('review-lightbox').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        document.getElementById('review-lightbox').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function navigateLightbox(dir) {
+        lightboxIndex = (lightboxIndex + dir + lightboxImages.length) % lightboxImages.length;
+        showLightboxImage();
+    }
+
+    function showLightboxImage() {
+        document.getElementById('lightbox-img').src = lightboxImages[lightboxIndex];
+    }
+
+    document.addEventListener('keydown', (e) => {
+        const lb = document.getElementById('review-lightbox');
+        if (!lb || !lb.classList.contains('active')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') navigateLightbox(-1);
+        if (e.key === 'ArrowRight') navigateLightbox(1);
+    });
+
+    // ========== AJAX REVIEW SUBMIT ==========
+    const reviewForm = document.getElementById('review-form');
+    let isSubmitting = false; // Guard against double-clicks
+
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (isSubmitting) return; // Prevent duplicate submission
+
+            const formData = new FormData(this);
+            const msgEl = document.getElementById('review-msg');
+            const submitBtn = reviewForm.querySelector('.review-submit-btn');
+
+            if (!ratingInput.value) {
+                msgEl.textContent = 'Please select a rating.';
+                msgEl.style.color = '#e74c3c';
+                return;
+            }
+
+            // Disable button and show loading state
+            isSubmitting = true;
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.textContent = 'SUBMITTING…';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+
+            fetch("{% url 'submit_review' product.id %}", {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => {
+                if (res.status === 401) {
+                    window.location.href = "{% url 'login' %}?next={{ request.path }}";
+                    return;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                if (data.status === 'success') {
+                    msgEl.textContent = data.action === 'updated'
+                        ? '✓ Review updated successfully!'
+                        : '✓ Review submitted successfully!';
+                    msgEl.style.color = '#4CAF50';
+
+                    const avgEl = document.getElementById('avg-rating-display');
+                    if (avgEl) avgEl.textContent = data.avg_rating;
+                    const totalEl = document.getElementById('total-reviews-display');
+                    if (totalEl) totalEl.textContent = `Based on ${data.review_count} review${data.review_count !== 1 ? 's' : ''}`;
+
+                    let starsHtml = '';
+                    for (let i = 1; i <= 5; i++) {
+                        starsHtml += i <= data.rating
+                            ? '<i class="fa-solid fa-star" style="color: #c8a96e;"></i>'
+                            : '<i class="fa-regular fa-star" style="color: #c8a96e;"></i>';
+                    }
+
+                    // Build image gallery HTML
+                    let imagesHtml = '';
+                    if (data.image_urls && data.image_urls.length > 0) {
+                        imagesHtml = '<div class="review-images-grid">';
+                        data.image_urls.forEach(url => {
+                            imagesHtml += `<img src="${url}" alt="Review photo" class="review-thumb" onclick="openLightbox(this)" data-full="${url}">`;
+                        });
+                        imagesHtml += '</div>';
+                    }
+
+                    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const titleHtml = data.title ? `<h4 class="review-card-title">${data.title}</h4>` : '';
+                    const cardHtml = `
+                        <div class="review-card review-new" data-user-review="true">
+                            <div class="review-card-header">
+                                <div class="review-stars">${starsHtml}</div>
+                                <span class="review-date">${today}</span>
+                            </div>
+                            ${titleHtml}
+                            <p class="review-card-comment">${data.comment}</p>
+                            ${imagesHtml}
+                            <p class="review-card-author">— ${data.display_name}</p>
+                        </div>
+                    `;
+
+                    const list = document.getElementById('reviews-list');
+                    const noReviews = list.querySelector('.no-reviews');
+                    if (noReviews) noReviews.remove();
+
+                    // Remove any existing user review card to prevent visual duplicates
+                    const existingUserCard = list.querySelector('[data-user-review="true"]');
+                    if (existingUserCard) existingUserCard.remove();
+
+                    list.insertAdjacentHTML('afterbegin', cardHtml);
+
+                    submitBtn.textContent = 'UPDATE REVIEW';
+
+                    // Reset upload state
+                    selectedFiles = [];
+                    if (previewGrid) previewGrid.innerHTML = '';
+                    updateCounter();
+
+                    setTimeout(() => { msgEl.textContent = ''; }, 4000);
+                } else {
+                    msgEl.textContent = data.message;
+                    msgEl.style.color = '#e74c3c';
+                }
+            })
+            .catch(err => {
+                console.error('Review error:', err);
+                msgEl.textContent = 'Something went wrong. Please try again.';
+                msgEl.style.color = '#e74c3c';
+            })
+            .finally(() => {
+                // Re-enable button
+                isSubmitting = false;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+            });
+        });
+    }
+</script>
+{% endblock %}

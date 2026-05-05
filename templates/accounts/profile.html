@@ -1,0 +1,496 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="profile-page">
+    <div class="profile-container">
+        <!-- Sidebar -->
+        <aside class="profile-sidebar">
+            <div class="user-summary">
+                <div class="avatar-placeholder">
+                    {{ user.first_name|default:user.username|slice:":1"|upper }}
+                </div>
+                <h2 class="user-name">{{ user.get_full_name|default:user.username }}</h2>
+                <p class="user-email">{{ user.email }}</p>
+            </div>
+            
+            <nav class="profile-nav">
+                <div class="profile-nav-item active" onclick="showSection('profile-info', this)">
+                    <i class="fa-regular fa-user"></i> My Profile
+                </div>
+                <div class="profile-nav-item" onclick="showSection('orders-history', this)">
+                    <i class="fa-solid fa-box-open"></i> My Orders
+                </div>
+                <div class="profile-nav-item" onclick="showSection('wishlist-section', this)">
+                    <i class="fa-regular fa-heart"></i> Wishlist
+                </div>
+                <div class="profile-nav-item" onclick="showSection('wallet-section', this)">
+                    <i class="fa-solid fa-wallet"></i> Wallet
+                </div>
+                <a href="{% url 'logout' %}" class="profile-nav-item logout-link">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="profile-content">
+            <!-- Profile Info Section (Default) -->
+            <section id="profile-info" class="profile-section active">
+                <h2 class="section-heading">Account Information</h2>
+                <form method="POST" class="profile-form">
+                    {% csrf_token %}
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>First Name</label>
+                            <input type="text" name="first_name" value="{{ user.first_name }}" placeholder="Your first name">
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Your last name">
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="email" value="{{ user.email }}" placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" name="phone_number" value="{{ user.phone_number }}" placeholder="+91 XXXXXXXXXX">
+                        </div>
+                    </div>
+                    <button type="submit" class="save-profile-btn">SAVE CHANGES</button>
+                </form>
+            </section>
+
+            <!-- Orders History Section -->
+            <section id="orders-history" class="profile-section">
+                <h2 class="section-heading">Order History</h2>
+                {% if orders %}
+                    <div class="orders-list">
+                        {% for order in orders %}
+                        <div class="order-item-card">
+                            <div class="order-header">
+                                <div class="order-id">Order #{{ order.id }}</div>
+                                <div class="order-status {{ order.status }}">{{ order.get_status_display }}</div>
+                            </div>
+                            <div class="order-details">
+                                <p>Date: {{ order.created_at|date:"d M, Y" }}</p>
+                                <p>Total: ₹{{ order.total_amount|floatformat:2 }}</p>
+                            </div>
+                            <a href="{% url 'order_detail' order.id %}" class="view-order-link">View Details</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fa-solid fa-receipt"></i>
+                        <p>You haven't placed any orders yet.</p>
+                        <a href="{% url 'product_list' %}" class="shop-now-btn">SHOP NOW</a>
+                    </div>
+                {% endif %}
+            </section>
+
+            <!-- Wishlist Section -->
+            <section id="wishlist-section" class="profile-section">
+                <h2 class="section-heading">My Wishlist</h2>
+                {% if wishlist_items %}
+                    <div class="wishlist-grid">
+                        {% for item in wishlist_items %}
+                        {% if item.variant %}
+                        <div class="wishlist-card">
+                            <div class="wishlist-img">
+                                {% if item.variant.primary_image %}
+                                    <img src="{{ item.variant.primary_image.url }}" alt="{{ item.variant.product.name }}">
+                                {% else %}
+                                    <div class="img-placeholder">No Image</div>
+                                {% endif %}
+                                <form action="{% url 'toggle_wishlist' item.variant.product.id %}" method="POST" class="remove-wishlist-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="variant_id" value="{{ item.variant.id }}">
+                                    <button type="submit" class="remove-btn"><i class="fa-solid fa-xmark"></i></button>
+                                </form>
+                            </div>
+                            <div class="wishlist-info">
+                                <h3 class="product-name">{{ item.variant.product.name }}</h3>
+                                <p class="product-variant" style="font-size: 11px; color: #888; margin-bottom: 5px;">Color: {{ item.variant.color.name }}</p>
+                                <p class="product-price">₹{{ item.variant.current_price|floatformat:2 }}</p>
+                                <a href="{% url 'product_detail' item.variant.product.id %}" class="view-btn">View Product</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fa-regular fa-heart"></i>
+                        <p>Your wishlist is empty.</p>
+                        <a href="{% url 'product_list' %}" class="shop-now-btn">EXPLORE PRODUCTS</a>
+                    </div>
+                {% endif %}
+            </section>
+
+            <!-- Wallet Section -->
+            <section id="wallet-section" class="profile-section">
+                <h2 class="section-heading">My Wallet</h2>
+                <div class="wallet-balance-card">
+                    <div class="wallet-balance-icon">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <div class="wallet-balance-info">
+                        <p class="wallet-label">Available Balance</p>
+                        <h3 class="wallet-amount">₹{{ wallet_balance|floatformat:2 }}</h3>
+                    </div>
+                </div>
+
+                {% if wallet_transactions %}
+                <h3 class="wallet-history-title">Transaction History</h3>
+                <div class="wallet-transactions">
+                    {% for txn in wallet_transactions %}
+                    <div class="wallet-txn-row">
+                        <div class="txn-info">
+                            <span class="txn-type {{ txn.transaction_type }}">{{ txn.get_transaction_type_display }}</span>
+                            <span class="txn-desc">{{ txn.description }}</span>
+                        </div>
+                        <div class="txn-right">
+                            <span class="txn-amount {{ txn.transaction_type }}">{% if txn.transaction_type == 'credit' %}+{% else %}-{% endif %}₹{{ txn.amount|floatformat:2 }}</span>
+                            <span class="txn-date">{{ txn.created_at|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-receipt"></i>
+                    <p>No transactions yet.</p>
+                </div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</main>
+
+<script>
+function showSection(sectionId, element) {
+    // Hide all sections
+    document.querySelectorAll('.profile-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Deactivate all nav items
+    document.querySelectorAll('.profile-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Show selected section
+    document.getElementById(sectionId).classList.add('active');
+    
+    // Activate clicked nav item
+    element.classList.add('active');
+}
+</script>
+
+<style>
+/* Scoped styles for the profile page */
+.profile-page {
+    background-color: #fcf9f3;
+    min-height: 80vh;
+    padding: 60px 0;
+}
+
+.profile-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 40px;
+    padding: 0 20px;
+}
+
+.profile-sidebar {
+    background: #fff;
+    padding: 40px 30px;
+    border-radius: 2px;
+    border: 1px solid #e0d8cf;
+    height: fit-content;
+}
+
+.user-summary {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #f0e6da;
+}
+
+.avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    background: #1a1a18;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 15px;
+    font-family: 'Georgia', serif;
+}
+
+.user-name {
+    font-family: 'Georgia', serif;
+    font-size: 20px;
+    margin: 0 0 5px;
+}
+
+.user-email {
+    font-size: 13px;
+    color: #888;
+}
+
+.profile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.profile-nav-item {
+    padding: 15px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #444;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.profile-nav-item i {
+    font-size: 16px;
+    width: 20px;
+}
+
+.profile-nav-item:hover {
+    background: #fcf9f3;
+    color: #1a1a18;
+}
+
+.profile-nav-item.active {
+    background: #1a1a18;
+    color: #fff;
+}
+
+.logout-link {
+    margin-top: 20px;
+    color: #d9534f;
+}
+
+.profile-content {
+    background: #fff;
+    padding: 50px;
+    border-radius: 2px;
+    border: 1px solid #e0d8cf;
+}
+
+.section-heading {
+    font-family: 'Georgia', serif;
+    font-size: 26px;
+    margin-bottom: 40px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #1a1a18;
+}
+
+.profile-section {
+    display: none;
+}
+
+.profile-section.active {
+    display: block;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Form Styles */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+}
+
+.form-group input {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    outline: none;
+    font-size: 14px;
+}
+
+.save-profile-btn {
+    background: #1a1a18;
+    color: #fff;
+    border: none;
+    padding: 15px 40px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.save-profile-btn:hover { opacity: 0.8; }
+
+/* Orders History Styles */
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.order-item-card {
+    border: 1px solid #eee;
+    padding: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: box-shadow 0.3s;
+}
+
+.order-item-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.order-header .order-id {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 5px;
+}
+
+.order-status {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.order-status.pending { background: #fff8e1; color: #ff8f00; }
+.order-status.confirmed { background: #e3f2fd; color: #1976d2; }
+.order-status.shipped { background: #f3e5f5; color: #7b1fa2; }
+.order-status.delivered { background: #e8f5e9; color: #2e7d32; }
+
+.view-order-link {
+    text-decoration: underline;
+    font-size: 13px;
+    color: #1a1a18;
+    font-weight: 600;
+}
+
+/* Wishlist Styles */
+.wishlist-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.wishlist-card {
+    border: 1px solid #eee;
+}
+
+.wishlist-img {
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+}
+
+.wishlist-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #fff;
+    border: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.wishlist-info {
+    padding: 15px;
+    text-align: center;
+}
+
+.wishlist-info .product-name {
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.view-btn {
+    display: block;
+    margin-top: 10px;
+    font-size: 12px;
+    text-decoration: underline;
+    color: #888;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 0;
+    color: #888;
+}
+
+.empty-state i {
+    font-size: 50px;
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.shop-now-btn {
+    display: inline-block;
+    margin-top: 25px;
+    padding: 12px 30px;
+    background: #1a1a18;
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 992px) {
+    .profile-container {
+        grid-template-columns: 1fr;
+    }
+    .profile-sidebar {
+        margin-bottom: 20px;
+    }
+}
+</style>
+{% endblock %}

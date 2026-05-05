@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="orders-history-page">
+    <div class="orders-container">
+        <header class="orders-header">
+            <h1 class="page-title">MY ORDERS</h1>
+            <p class="subtitle">Track and manage your MyLinen purchases</p>
+        </header>
+
+        {% if orders %}
+            <div class="orders-list">
+                {% for order in orders %}
+                <div class="order-card">
+                    <div class="order-card-header">
+                        <div class="order-meta">
+                            <span class="order-number">#ML-{{ order.id }}</span>
+                            <span class="order-date">{{ order.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="order-status status-{{ order.status|lower }}">
+                            {{ order.get_status_display|default:order.status|upper }}
+                        </div>
+                    </div>
+
+                    <div class="order-card-body">
+                        <div class="order-items-preview">
+                            {% for item in order.items.all|slice:":3" %}
+                                <div class="mini-item">
+                                    <a href="{% if item.variant %}{% url 'product_detail' item.variant.product.id %}{% else %}#{% endif %}">
+                                        <img src="{% if item.variant.primary_image %}{{ item.variant.primary_image.url }}{% else %}{% static 'images/placeholder.png' %}{% endif %}" alt="{{ item.product_name_at_purchase }}">
+                                    </a>
+                                    <div class="mini-item-info">
+                                        <p class="name">{{ item.product_name_at_purchase }}</p>
+                                        <p class="qty">Qty: {{ item.quantity }} | {{ item.size_at_purchase }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            {% if order.items.count > 3 %}
+                                <p class="more-items">+ {{ order.items.count|add:"-3" }} more item(s)</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="order-summary-sidebar">
+                            <div class="summary-line">
+                                <span>Estimated Date</span>
+                                <span class="method">{{ order.estimated_delivery_date|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="summary-line">
+                                <span>Total Amount</span>
+                                <span class="total-price">₹{{ order.total_amount|floatformat:2 }}</span>
+                            </div>
+                            <div class="summary-line">
+                                <span>Payment</span>
+                                <span class="method">{% if order.payment_method == 'cod' %}COD{% else %}Online{% endif %}</span>
+                            </div>
+                            <a href="{% url 'order_detail' order.id %}" class="view-details-btn">VIEW FULL DETAILS</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-orders">
+                <i class="fa-solid fa-box-open"></i>
+                <h2>No orders yet</h2>
+                <p>You haven't placed any orders with us yet. Start your linen collection today.</p>
+                <a href="{% url 'home' %}" class="shop-now-btn">START SHOPPING</a>
+            </div>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}

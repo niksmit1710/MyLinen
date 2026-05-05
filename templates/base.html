@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyLinen – Premium Linen Collection</title>
+    <meta name="description"
+        content="Shop premium handcrafted linen garments at MyLinen. Explore kurtas, shirts, trousers and more.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Jost:wght@300;400;500;600;700&family=Cormorant:wght@400;500;600&family=Georgia&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body>
+
+    <header class="mylinen-header">
+        <nav class="navbar-container">
+
+            <div class="navbar-left">
+                <a href="/" class="brand-logo">
+                    <span class="logo-italic">M</span>YLINEN
+                </a>
+            </div>
+
+            <div class="navbar-center">
+                <ul class="nav-menu">
+                    <li><a href="{% url 'product_list' %}" class="nav-link">Shop All</a></li>
+                    <li><a href="{% url 'product_list' %}?category=women" class="nav-link">Women</a></li>
+                    <li><a href="{% url 'product_list' %}?category=girls" class="nav-link">Girls</a></li>
+                    <li><a href="{% url 'about_us' %}" class="nav-link">About Us</a></li>
+                </ul>
+            </div>
+
+            <div class="navbar-right">
+                <form action="{% url 'product_list' %}" method="GET" class="search-wrapper">
+                    <input type="text" name="q" placeholder="Search..." value="{{ request.GET.q|default:'' }}"
+                        class="search-field">
+                    <button type="submit" class="search-trigger">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </form>
+
+                <div class="icon-group">
+                    <a href="/wishlist/" class="icon-link" title="Wishlist">
+                        <i class="fa-regular fa-heart"></i>
+                    </a>
+
+                    <a href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}{% url 'login' %}{% endif %}"
+                        class="icon-link" title="Account">
+                        <i class="fa-regular fa-user"></i>
+                    </a>
+
+                    <a href="/cart/" class="icon-link cart-anchor" title="Bag">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                        <span class="badge-count" id="cart-badge-count" style="{% if not cart_count or cart_count == 0 %}display:none;{% endif %}">{{ cart_count|default:0 }}</span>
+                    </a>
+                </div>
+
+                <button class="mobile-menu-toggle" aria-label="Toggle menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mobile Navigation Drawer -->
+        <div class="mobile-nav-overlay" id="mobileNav">
+            <div class="mobile-nav-content">
+                <button class="mobile-menu-close" aria-label="Close menu">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="mobile-nav-header">
+                    <a href="/" class="brand-logo">
+                        <span class="logo-italic">M</span>YLINEN
+                    </a>
+                </div>
+                <ul class="mobile-nav-menu">
+                    <li><a href="{% url 'product_list' %}" class="mobile-nav-link">Shop All</a></li>
+                    <li><a href="{% url 'product_list' %}?category=women" class="mobile-nav-link">Women</a></li>
+                    <li><a href="{% url 'product_list' %}?category=girls" class="mobile-nav-link">Girls</a></li>
+                    <li><a href="{% url 'about_us' %}" class="mobile-nav-link">About Us</a></li>
+                </ul>
+                <div class="mobile-nav-footer">
+                    <div class="mobile-icon-group">
+                        <a href="/wishlist/" class="mobile-icon-link">
+                            <i class="fa-regular fa-heart"></i> Wishlist
+                        </a>
+                        <a href="{% if user.is_authenticated %}{% url 'profile' %}{% else %}{% url 'login' %}{% endif %}"
+                            class="mobile-icon-link">
+                            <i class="fa-regular fa-user"></i> Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    {% block page_body %}
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    {% endblock %}
+
+    <footer class="site-footer">
+        <div class="footer-main">
+            <div class="footer-column brand-newsletter">
+                <h2 class="footer-logo">MY LINEN</h2>
+                <p>Sign up for newsletter and customer updates and more.</p>
+                <form class="newsletter-form">
+                    <input type="email" placeholder="Email address" required>
+                    <button type="submit">Sign Up</button>
+                </form>
+            </div>
+
+            <div class="footer-column">
+                <h3>Newsletter</h3>
+                <ul>
+                    <li><a href="{% url 'about_us' %}">About Us</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Customer Care</h3>
+                <ul>
+                    <li><a href="{% url 'about_us' %}">About</a></li>
+                    <li><a href="#">Customer Care</a></li>
+                    <li><a href="#">Interest</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Contact Us</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Social</h3>
+                <div class="social-icons">
+                    <a href="#"><i data-lucide="instagram"></i></a>
+                    <a href="#"><i data-lucide="twitter"></i></a>
+                    <a href="#"><i data-lucide="facebook"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="payment-methods">
+                <span class="payment-icon">VISA</span>
+                <span class="payment-icon">Mastercard</span>
+                <span class="payment-icon">PayPal</span>
+                <span class="payment-icon">Amex</span>
+            </div>
+            <p class="copyright">&copy; Purely Linen</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+
+            // Wishlist Toggle Logic for Product Cards
+            document.querySelectorAll('.wishlist-card-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+
+                    {% if not request.user.is_authenticated %}
+                    alert('Please log in to use the wishlist feature.');
+                    return;
+                    {% endif %}
+
+                    const productId = btn.dataset.productId;
+                    const url = `/wishlist/toggle/${productId}/`;
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                const icon = btn.querySelector('i');
+                                const textSpan = btn.querySelector('.wishlist-btn-text');
+
+                                if (data.action === 'added') {
+                                    btn.style.backgroundColor = '#1a1a18';
+                                    btn.style.color = '#fff';
+                                    icon.classList.remove('fa-regular');
+                                    icon.classList.add('fa-solid');
+                                    textSpan.innerText = 'WISHLISTED';
+                                } else {
+                                    btn.style.backgroundColor = '#fff';
+                                    btn.style.color = '#1a1a18';
+                                    icon.classList.remove('fa-solid');
+                                    icon.classList.add('fa-regular');
+                                    textSpan.innerText = 'ADD TO WISHLIST';
+                                }
+                            }
+                        })
+                        .catch(error => console.error('Error toggling wishlist:', error));
+                });
+            });
+        });
+    </script>
+    <script src="{% static 'script.js' %}"></script>
+</body>
+
+</html>

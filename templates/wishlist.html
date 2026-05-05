@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="wishlist-page">
+    <div class="wishlist-container">
+        <header class="wishlist-header">
+            <h1 class="page-title">MY WISHLIST</h1>
+            <p class="wishlist-count">{{ wishlist_items|length }} Items</p>
+        </header>
+
+        {% if wishlist_items %}
+            <div class="wishlist-grid" id="wishlistGrid">
+                {% for item in wishlist_items %}
+                    {% if item.variant %}
+                    <div class="wishlist-item" id="wishlist-item-{{ item.id }}">
+                        <div class="wishlist-card-body">
+                            <a href="{% url 'product_detail' item.variant.product.id %}" class="item-link">
+                                <div class="item-image">
+                                    <img src="{{ item.variant.primary_image.url }}" alt="{{ item.variant.product.name }}">
+                                </div>
+                                <div class="item-info">
+                                    <h3 class="item-name">{{ item.variant.product.name }}</h3>
+                                    <p class="item-variant" style="font-size: 13px; color: #7a7a72; margin-bottom: 8px;">Color: {{ item.variant.color.name }}</p>
+                                    <div class="price-row">
+                                        {% if item.variant.current_mrp and item.variant.current_mrp > item.variant.current_price %}
+                                        <span class="mrp-price">₹{{ item.variant.current_mrp|floatformat:2 }}</span>
+                                        {% endif %}
+                                        <p class="item-price">₹{{ item.variant.current_price|floatformat:2 }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                            
+                            <div class="wishlist-item-actions">
+                                <button class="wishlist-action-btn move-to-cart" 
+                                        data-item-id="{{ item.id }}"
+                                        data-product-name="{{ item.variant.product.name }}"
+                                        data-product-price="{{ item.variant.current_price|floatformat:2 }}"
+                                        data-product-image="{{ item.variant.primary_image.url }}">
+                                    MOVE TO BAG
+                                </button>
+                                <button class="wishlist-remove-btn remove-from-wishlist" 
+                                        data-product-id="{{ item.variant.product.id }}"
+                                        data-variant-id="{{ item.variant.id }}"
+                                        data-item-id="{{ item.id }}">
+                                    REMOVE
+                                </button>
+                            </div>
+                            
+                            <div class="product-sizes-data" id="sizes-data-{{ item.id }}" style="display: none;">
+                                {% for stock in item.variant.size_stocks.all %}
+                                <button type="button" class="size-select-btn" data-size-id="{{ stock.size.id }}" {% if stock.stock == 0 %}disabled{% endif %}>
+                                    {{ stock.size.name }}
+                                </button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div id="empty-state" class="empty-wishlist">
+                <div class="empty-icon">🤍</div>
+                <h2>Your wishlist is empty</h2>
+                <p>Pieces you love will live here. Ready to find some favorites?</p>
+                <a href="/" class="shop-now-btn">CONTINUE SHOPPING</a>
+            </div>
+        {% endif %}
+
+        <div id="empty-state-js" class="empty-wishlist" style="display: none;">
+            <div class="empty-icon">🤍</div>
+            <h2>Your wishlist is empty</h2>
+            <p>Pieces you love will live here. Ready to find some favorites?</p>
+            <a href="/" class="shop-now-btn">CONTINUE SHOPPING</a>
+        </div>
+    </div>
+
+    <!-- Size Modal -->
+    <div id="quick-view-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content quick-view-content">
+            <button class="close-modal" id="close-modal-btn">&times;</button>
+            
+            <div class="modal-product-summary">
+                <img id="modal-product-image" src="" alt="Product">
+                <div class="modal-product-info">
+                    <h3 id="modal-product-name" class="modal-title"></h3>
+                    <p id="modal-product-price" class="modal-price"></p>
+                </div>
+            </div>
+
+            <p class="modal-subtitle">Select Size</p>
+            <div id="modal-sizes-container" class="size-options-container">
+                <!-- Sizes will be injected here by JS -->
+            </div>
+            
+            <p id="modal-error-msg" class="modal-error"></p>
+            
+            <button id="modal-add-to-bag-btn" class="add-to-cart-btn" data-item-id="">
+                ADD TO BAG
+            </button>
+        </div>
+    </div>
+</main>
+
+<script>
+// 1. Remove from Wishlist
+document.querySelectorAll('.remove-from-wishlist').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const itemId = btn.dataset.itemId;
+        const productId = btn.dataset.productId;
+        const variantId = btn.dataset.variantId;
+
+        const formData = new FormData();
+        formData.append('variant_id', variantId);
+
+        fetch(`/wishlist/toggle/${productId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const card = document.getElementById(`wishlist-item-${itemId}`);
+                card.classList.add('fade-out');
+                setTimeout(() => {
+                    card.remove();
+                    const remainingItems = document.querySelectorAll('.wishlist-item');
+                    if (remainingItems.length === 0) {
+                        const grid = document.getElementById('wishlistGrid');
+                        if (grid) grid.style.display = 'none';
+                        document.getElementById('empty-state-js').style.display = 'flex';
+                        document.querySelector('.wishlist-count').innerText = '0 Items';
+                    } else {
+                        document.querySelector('.wishlist-count').innerText = `${remainingItems.length} Items`;
+                    }
+                }, 400);
+            }
+        });
+    });
+});
+
+// 2. Open Modal to Select Size
+const modal = document.getElementById('quick-view-modal');
+const modalContainer = document.getElementById('modal-sizes-container');
+const modalAddBtn = document.getElementById('modal-add-to-bag-btn');
+const modalError = document.getElementById('modal-error-msg');
+let selectedSizeId = null;
+
+document.querySelectorAll('.move-to-cart').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const itemId = btn.dataset.itemId;
+        const productName = btn.dataset.productName;
+        const productPrice = btn.dataset.productPrice;
+        const productImage = btn.dataset.productImage;
+        
+        // Reset modal state
+        selectedSizeId = null;
+        modalError.innerText = '';
+        modalAddBtn.dataset.itemId = itemId;
+        document.getElementById('modal-product-name').innerText = productName;
+        document.getElementById('modal-product-price').innerText = '₹' + productPrice;
+        document.getElementById('modal-product-image').src = productImage;
+        
+        // Get size buttons
+        const sizesDataHtml = document.getElementById(`sizes-data-${itemId}`).innerHTML;
+        modalContainer.innerHTML = sizesDataHtml;
+        
+        // Add click events to size buttons
+        modalContainer.querySelectorAll('.size-select-btn').forEach(sizeBtn => {
+            sizeBtn.addEventListener('click', () => {
+                if(sizeBtn.hasAttribute('disabled')) return;
+                
+                // Remove selected class from all
+                modalContainer.querySelectorAll('.size-select-btn').forEach(b => b.classList.remove('selected'));
+                // Add to clicked
+                sizeBtn.classList.add('selected');
+                selectedSizeId = sizeBtn.dataset.sizeId;
+                modalError.innerText = ''; // clear error
+            });
+        });
+        
+        // Show modal
+        modal.style.display = 'flex';
+    });
+});
+
+// 3. Close Modal
+document.getElementById('close-modal-btn').addEventListener('click', () => {
+    modal.style.display = 'none';
+});
+window.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+
+// 4. Confirm Add to Bag
+modalAddBtn.addEventListener('click', () => {
+    if (!selectedSizeId) {
+        modalError.innerText = 'Please select a size first.';
+        return;
+    }
+    
+    const itemId = modalAddBtn.dataset.itemId;
+    const url = `/wishlist/move-to-cart/${itemId}/`;
+    
+    const formData = new FormData();
+    formData.append('size_id', selectedSizeId);
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const card = document.getElementById(`wishlist-item-${itemId}`);
+            if(card) {
+                card.classList.add('fade-out');
+                setTimeout(() => {
+                    card.remove();
+                    const remainingItems = document.querySelectorAll('.wishlist-item');
+                    if (remainingItems.length === 0) {
+                        const grid = document.getElementById('wishlistGrid');
+                        if (grid) grid.style.display = 'none';
+                        document.getElementById('empty-state-js').style.display = 'flex';
+                        document.querySelector('.wishlist-count').innerText = '0 Items';
+                    } else {
+                        document.querySelector('.wishlist-count').innerText = `${remainingItems.length} Items`;
+                    }
+                }, 400);
+            }
+            modal.style.display = 'none';
+            window.location.reload();
+        } else {
+            modalError.innerText = data.error || 'Failed to add to bag.';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        modalError.innerText = 'Network error occurred.';
+    });
+});
+</script>
+{% endblock %}

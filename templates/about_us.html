@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="about-page">
+
+    <section class="about-hero">
+        <div class="hero-content">
+            <p class="pre-title">OUR STORY</p>
+            <h1 class="about-title">Woven by Nature,<br>Tailored for Life</h1>
+            <p class="about-intro">
+                At MyLinen, we believe that the clothes we wear should be as enduring as the memories we make in them.
+                Founded on the principles of sustainability and timeless design, we create pieces that celebrate the
+                raw, honest beauty of flax.
+            </p>
+        </div>
+    </section>
+
+    <section class="about-mission">
+        <div class="mission-grid">
+            <div class="mission-text">
+                <h2>Conscious Craftsmanship</h2>
+                <p>Every MyLinen garment begins in the flax fields. We partner with small-scale weavers who treat every
+                    thread with respect. By choosing linen, we choose a path that consumes less water and leaves a
+                    smaller footprint on our Earth.</p>
+                <p>Our designs don't chase seasons. We create silhouettes that remain relevant decade after decade,
+                    softening and growing more beautiful with every wash.</p>
+            </div>
+            <div class="mission-visual">
+                <div class="image-placeholder-luxury">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="why-linen">
+        <div class="section-header">
+            <h2 class="serif-title">Why Linen?</h2>
+            <div class="title-accent"></div>
+        </div>
+
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <span class="benefit-number">01</span>
+                <h3>Breathability</h3>
+                <p>Linen is a natural insulator. It keeps you cool in the heat of summer and retains warmth during
+                    cooler evenings, making it the perfect year-round companion.</p>
+            </div>
+
+            <div class="benefit-card">
+                <span class="benefit-number">02</span>
+                <h3>Endurance</h3>
+                bruised by time. Linen is one of the world’s strongest natural fibers. Unlike synthetic blends, it won't
+                pill or lose its shape, lasting for generations.</p>
+            </div>
+
+            <div class="benefit-card">
+                <span class="benefit-number">03</span>
+                <h3>Hypoallergenic</h3>
+                <p>Gentle on sensitive skin and naturally antibacterial. Because the flax plant requires fewer
+                    pesticides, the fabric remains pure and kind to your body.</p>
+            </div>
+
+            <div class="benefit-card">
+                <span class="benefit-number">04</span>
+                <h3>Sustainable</h3>
+                <p>Flax is a resilient crop that grows in poor soil with minimal water. Every part of the plant is used,
+                    ensuring zero waste from field to fabric.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="about-cta">
+        <h2 class="serif-title">Experience the Texture</h2>
+        <a href="{% url 'product_list' %}" class="mylinen-btn-outline">SHOP THE COLLECTION</a>
+    </section>
+
+</main>
+{% endblock %}

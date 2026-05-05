@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<main class="checkout-page">
+    <div class="checkout-container">
+        <nav class="checkout-nav">
+            <span>BAG</span>
+            <span class="nav-separator">/</span>
+            <span class="active-step">CHECKOUT</span>
+            <span class="nav-separator">/</span>
+            <span>CONFIRMATION</span>
+        </nav>
+
+        <h1 class="checkout-title">Finalize Your Order</h1>
+
+        <form method="POST" id="checkout-form" class="checkout-grid">
+            {% csrf_token %}
+
+            <div class="checkout-main">
+                <section class="checkout-section">
+                    <h2 class="section-label">01. Delivery Address</h2>
+                    <div class="form-stack">
+                        <input type="text" name="full_name" placeholder="Full Name" required>
+                        <div class="form-row">
+                            <input type="email" name="email" placeholder="Email Address" required>
+                            <input type="tel" name="phone_number" placeholder="Phone Number" required>
+                        </div>
+                        <textarea name="address" placeholder="Shipping Address" rows="3" required></textarea>
+                        <div class="form-row">
+                            <input type="text" name="city" placeholder="City" required>
+                            <input type="text" name="state" placeholder="State" required>
+                            <input type="text" name="pincode" placeholder="Pincode" required>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="checkout-section">
+                    <h2 class="section-label">02. Payment Method</h2>
+                    <div class="payment-grid">
+                        <label class="payment-box">
+                            <input type="radio" name="payment_method" value="online" checked>
+                            <div class="payment-content">
+                                <span class="method-title">Online Payment</span>
+                                <span class="method-desc">UPI, Cards, Netbanking</span>
+                            </div>
+                            <div class="custom-radio"></div>
+                        </label>
+
+                        <label class="payment-box">
+                            <input type="radio" name="payment_method" value="cod">
+                            <div class="payment-content">
+                                <span class="method-title">Cash on Delivery</span>
+                                <span class="method-desc">Pay upon arrival</span>
+                            </div>
+                            <div class="custom-radio"></div>
+                        </label>
+                    </div>
+                </section>
+
+                <button type="submit" class="submit-order-btn">
+                    PLACE ORDER — ₹{{ final_total|floatformat:2 }}
+                </button>
+            </div>
+
+            <aside class="checkout-sidebar">
+                <div class="summary-card">
+                    <h3 class="summary-card-title">Order Summary</h3>
+                    <div class="summary-list">
+                        {% for item in cart.values %}
+                        <div class="summary-item">
+                            <div class="item-img-placeholder">
+                                <img src="{{ item.image }}" alt="{{ item.name }}">
+                            </div>
+                            <div class="item-text">
+                                <p class="name">{{ item.name }}</p>
+                                <p class="meta">Qty: {{ item.quantity }} | Size: {{ item.size }}</p>
+                                <p class="price">₹{{ item.price|floatformat:2 }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="summary-totals">
+                        <div class="total-row">
+                            <span>Subtotal</span>
+                            <span>₹{{ total|floatformat:2 }}</span>
+                        </div>
+                        <div class="total-row">
+                            <span>Shipping</span>
+                            <span class="free">FREE</span>
+                        </div>
+                        <div class="total-row grand-total">
+                            <span>Grand Total</span>
+                            <span>₹{{ final_total|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    <p class="secure-checkout-hint">
+                        <i class="fa-solid fa-lock"></i> Secure & Encrypted Transaction
+                    </p>
+                </div>
+            </aside>
+        </form>
+    </div>
+</main>
+
+<script>
+    document.getElementById('checkout-form').addEventListener('submit', function (e) {
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+
+        if (paymentMethod === 'online') {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'created') {
+                        var options = {
+                            "key": data.razorpay_key_id,
+                            "amount": data.payment.amount,
+                            "currency": "INR",
+                            "name": "MyLinen",
+                            "description": "Payment for Order #" + data.order_id,
+                            "order_id": data.payment.id,
+                            "handler": function (response) {
+                                fetch("{% url 'payment_success' %}", {
+                                    method: 'POST',
+                                    body: JSON.stringify({
+                                        razorpay_order_id: response.razorpay_order_id,
+                                        razorpay_payment_id: response.razorpay_payment_id,
+                                        razorpay_signature: response.razorpay_signature
+                                    }),
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                                    }
+                                })
+                                    .then(res => res.json())
+                                    .then(resData => {
+                                        if (resData.status === 'success') {
+                                            window.location.href = "{% url 'order_success' %}";
+                                        } else {
+                                            alert("Payment verification failed.");
+                                        }
+                                    });
+                            },
+                            "prefill": {
+                                "name": data.customer.name,
+                            },
+                            "theme": {
+                                "color": "#1a1a18"
+                            }
+                        };
+                        var rzp1 = new Razorpay(options);
+                        rzp1.open();
+                    } else {
+                        alert(data.error || "An error occurred.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Something went wrong. Please try again.");
+                });
+        }
+    });
+</script>
+{% endblock %}

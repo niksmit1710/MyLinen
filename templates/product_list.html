@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="plp-container">
+    <header class="plp-header">
+        <nav class="breadcrumbs">
+            <a href="/" style="text-decoration: none; color: inherit;">Home</a> /
+            {% if selected_category_name %}
+            <span class="current">{{ selected_category_name }}</span>
+            {% else %}
+            <span class="current">Shop All</span>
+            {% endif %}
+        </nav>
+        <h1 class="page-title">
+            {% if query %}
+            SEARCH RESULTS FOR "{{ query|upper }}"
+            {% elif selected_category_name %}
+            SHOP {{ selected_category_name|upper }}
+            {% else %}
+            SHOP ALL LINEN
+            {% endif %}
+        </h1>
+        <button class="mobile-filter-trigger" id="filterTrigger">
+            <i class="fa-solid fa-filter"></i> Filters
+            {% if filter_count > 0 %}<span class="filter-badge">{{ filter_count }}</span>{% endif %}
+        </button>
+    </header>
+
+    <div class="filter-overlay" id="filterOverlay"></div>
+    <div class="plp-layout">
+        <aside class="filter-sidebar" id="filterSidebar">
+            <div class="filter-header">
+                <h3>Filters</h3>
+                <button class="mobile-filter-close" id="filterClose">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form method="GET" action="{% url 'product_list' %}" id="filter-form" class="filter-form">
+                {% if query %}
+                <input type="hidden" name="q" value="{{ query }}">
+                {% endif %}
+
+                <div class="filter-content">
+                    <div class="filter-group">
+                        <h4>Category</h4>
+                        <div class="filter-options">
+                            <ul>
+                                {% if filter_parent_category %}
+                                <li>
+                                    <a href="?q={{ query }}&category={{ filter_parent_category.id }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}"
+                                        style="text-decoration: none; color: {% if selected_category == filter_parent_category.id|stringformat:'s' or selected_category == filter_parent_category.name %}#000; font-weight: bold;{% else %}#666;{% endif %}">
+                                        All {{ filter_parent_category.name }}
+                                    </a>
+                                </li>
+                                {% for sub in filter_parent_category.subcategories.all %}
+                                <li>
+                                    <a href="?q={{ query }}&category={{ sub.id }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}"
+                                        style="text-decoration: none; color: {% if selected_category == sub.id|stringformat:'s' or selected_category == sub.name %}#000; font-weight: bold;{% else %}#666;{% endif %}">
+                                        {{ sub.name }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                                {% else %}
+                                <li>
+                                    <a href="?q={{ query }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}"
+                                        style="text-decoration: none; color: {% if not selected_category %}#000; font-weight: bold;{% else %}#666;{% endif %}">
+                                        All Categories
+                                    </a>
+                                </li>
+                                {% for cat in categories %}
+                                <li>
+                                    <a href="?q={{ query }}&category={{ cat.id }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}"
+                                        style="text-decoration: none; color: {% if selected_category == cat.id|stringformat:'s' or selected_category == cat.name %}#000; font-weight: bold;{% else %}#666;{% endif %}">
+                                        {{ cat.name }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Price Range</h4>
+                        <div class="filter-options">
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px; padding: 10px 0;">
+                                <input type="number" name="min_price" placeholder="Min" value="{{ min_price }}"
+                                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                <input type="number" name="max_price" placeholder="Max" value="{{ max_price }}"
+                                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Colors</h4>
+                        <div class="filter-options">
+                            <div class="color-swatch-list">
+                                {% for color in all_colors %}
+                                <label class="color-swatch-label" title="{{ color.name }}">
+                                    <input type="checkbox" name="color" value="{{ color.id }}"
+                                        {% if color.id|stringformat:'s' in selected_color_ids %}checked{% endif %}>
+                                    <span class="color-swatch"
+                                        style="background-color: {{ color.hex_code }};{% if color.hex_code == '#FFFFFF' or color.hex_code == '#ffffff' or color.hex_code == '#FFF' or color.hex_code == '#fff' %} border: 1.5px solid #ccc;{% endif %}"></span>
+                                    <span class="color-swatch-name">{{ color.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Discount</h4>
+                        <div class="filter-options">
+                            <ul>
+                                <li>
+                                    <a href="?q={{ query }}&category={{ selected_category }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
+                                        style="text-decoration: none; color: {% if not request.GET.discount %}#000; font-weight: bold;{% else %}#666;{% endif %}">
+                                        All
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="?q={{ query }}&category={{ selected_category }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=10{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
+                                        style="text-decoration: none; color: {% if request.GET.discount == '10' %}#000; font-weight: bold;{% else %}#666;{% endif %}">
+                                        10% or more
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="?q={{ query }}&category={{ selected_category }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=30{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
+                                        style="text-decoration: none; color: {% if request.GET.discount == '30' %}#000; font-weight: bold;{% else %}#666;{% endif %}">
+                                        30% or more
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="?q={{ query }}&category={{ selected_category }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=50{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
+                                        style="text-decoration: none; color: {% if request.GET.discount == '50' %}#000; font-weight: bold;{% else %}#666;{% endif %}">
+                                        50% or more
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Sort By</h4>
+                        <div class="filter-options">
+                            <select name="sort" class="sort-dropdown"
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; background: #fff; font-size: 14px; margin: 10px 0;">
+                                <option value="" {% if sort == '' %}selected{% endif %}>Featured</option>
+                                <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+                                <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+                                <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name: A to Z</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-footer">
+                    {% if filter_count > 0 or query %}
+                    <a href="{% url 'product_list' %}" class="clear-all-btn">CLEAR ALL</a>
+                    {% else %}
+                    <span class="clear-all-btn disabled">CLEAR ALL</span>
+                    {% endif %}
+                    <button type="submit" class="apply-filters-btn">APPLY FILTERS</button>
+                </div>
+            </form>
+        </aside>
+
+        <section class="grid-section">
+            <div class="grid-controls">
+                <span>{{ products|length }} Products</span>
+            </div>
+
+            <div class="product-grid">
+                {% for product in products %}
+                <div class="product-card">
+                    <a href="{% url 'product_detail' product.id %}" style="text-decoration: none; color: inherit;">
+                        <div class="product-image">
+                            {% if product.primary_image %}
+                            <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" loading="lazy">
+                            {% else %}
+                            <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy">
+                            {% endif %}
+                            {% if product.discount_percentage > 0 %}
+                            <span class="discount-badge">{{ product.discount_percentage }}% OFF</span>
+                            {% endif %}
+                        </div>
+                        <div class="product-info">
+                            <p class="product-name">{{ product.name }}</p>
+                            
+                            <!-- Available Colors -->
+                            <div class="product-card-colors" style="display: flex; gap: 4px; margin-bottom: 8px;">
+                                {% for variant in product.variants.all %}
+                                <div class="color-dot" style="width: 10px; height: 10px; border-radius: 50%; background-color: {{ variant.color.hex_code }}; border: 1px solid #ddd;" title="{{ variant.color.name }}"></div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="product-card-rating">
+                                {% for i in "12345" %}
+                                {% if forloop.counter <= product.avg_rating %} <i class="fa-solid fa-star"></i>
+                                    {% else %}
+                                    <i class="fa-regular fa-star"></i>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% if product.review_count > 0 %}
+                                    <span class="product-card-review-count">({{ product.review_count }})</span>
+                                    {% endif %}
+                            </div>
+                            <div class="price-row" style="display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;">
+                                {% if product.is_on_sale %}
+                                    {% if product.display_mrp and product.display_mrp > product.base_price %}
+                                        <span class="mrp-price" style="font-size: 0.8rem;">₹{{ product.display_mrp|floatformat:0 }}</span>
+                                    {% endif %}
+                                    <span class="original-price" style="text-decoration: line-through; color: #999; font-size: 0.9rem;">₹{{ product.base_price|floatformat:0 }}</span>
+                                    <span class="price" style="color: #ba2121; font-weight: bold;">₹{{ product.display_price|floatformat:0 }}</span>
+                                {% else %}
+                                    {% if product.display_mrp and product.display_mrp > product.display_price %}
+                                        <span class="mrp-price">₹{{ product.display_mrp|floatformat:0 }}</span>
+                                    {% endif %}
+                                    <span class="price">₹{{ product.display_price|floatformat:0 }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                    <div style="margin-top: auto;">
+                        <button class="add-to-cart wishlist-card-btn" data-product-id="{{ product.id }}"
+                            style="background-color: {% if product.id in wishlist_product_ids %}#1a1a18{% else %}#fff{% endif %}; color: {% if product.id in wishlist_product_ids %}#fff{% else %}#1a1a18{% endif %}; border: 1px solid #1a1a18; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i
+                                class="{% if product.id in wishlist_product_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+                            <span class="wishlist-btn-text">
+                                {% if product.id in wishlist_product_ids %}WISHLISTED{% else %}ADD TO WISHLIST{% endif %}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="grid-column: 1/-1; text-align: center; padding: 50px;">
+                    <p>No products found matching your criteria.</p>
+                    <a href="{% url 'product_list' %}" style="text-decoration: underline;">Back to Shop All</a>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</main>
+<script>
+    document.querySelectorAll('.product-card form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            const submitBtn = form.querySelector('button');
+
+            if (submitBtn.innerText.includes('GO TO BAG')) {
+                e.preventDefault();
+                window.location.href = "{% url 'cart_detail' %}";
+                return;
+            }
+
+            e.preventDefault();
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        submitBtn.innerText = 'GO TO BAG 🛍️';
+                        submitBtn.style.backgroundColor = '#1a1a18';
+                        submitBtn.style.color = '#fff';
+
+                        // Update cart count badge
+                        const badge = document.querySelector('.badge-count');
+                        if (badge) {
+                            badge.innerText = data.cart_count;
+                        } else {
+                            const cartAnchor = document.querySelector('.cart-anchor');
+                            if (cartAnchor) {
+                                const newBadge = document.createElement('span');
+                                newBadge.className = 'badge-count';
+                                newBadge.innerText = data.cart_count;
+                                cartAnchor.appendChild(newBadge);
+                            }
+                        }
+                    } else {
+                        alert(data.message || 'Something went wrong');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    });
+</script>
+{% endblock %}
