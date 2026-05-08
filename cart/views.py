@@ -100,11 +100,27 @@ def cart_detail(request):
 
     grand_total = float(subtotal) - discount_amount
 
+    # Wallet Logic
+    wallet_balance = 0
+    wallet_used = 0
+    payable_amount = grand_total
+
+    if request.user.is_authenticated:
+        from accounts.models import Wallet
+        from decimal import Decimal
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        wallet_balance = float(wallet.balance)
+        wallet_used = min(wallet_balance, float(grand_total))
+        payable_amount = float(grand_total) - wallet_used
+
     return render(request, 'cart.html', {
         'cart': cart,
         'subtotal': subtotal,
         'discount_amount': discount_amount,
         'grand_total': grand_total,
+        'wallet_balance': wallet_balance,
+        'wallet_used': wallet_used,
+        'payable_amount': payable_amount,
         'applied_coupon': applied_coupon,
         'delivery_date': delivery_date
     })
@@ -197,6 +213,18 @@ def update_cart(request, key):
         grand_total = float(subtotal) - discount_amount
         cart_count = sum(item['quantity'] for item in cart.values())
 
+        # Wallet Logic
+        wallet_balance = 0
+        wallet_used = 0
+        payable_amount = grand_total
+
+        if request.user.is_authenticated:
+            from accounts.models import Wallet
+            wallet, _ = Wallet.objects.get_or_create(user=request.user)
+            wallet_balance = float(wallet.balance)
+            wallet_used = min(wallet_balance, float(grand_total))
+            payable_amount = float(grand_total) - wallet_used
+
         return JsonResponse({
             'status': 'success',
             'new_key': new_key,
@@ -207,6 +235,9 @@ def update_cart(request, key):
             'subtotal': subtotal,
             'discount_amount': discount_amount,
             'grand_total': grand_total,
+            'wallet_balance': wallet_balance,
+            'wallet_used': wallet_used,
+            'payable_amount': payable_amount,
             'cart_count': cart_count,
             'merged': merged
         })

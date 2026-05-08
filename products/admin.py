@@ -34,16 +34,19 @@ class ReviewImageInline(admin.TabularInline):
 # --- Admin Classes ---
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category')
-    list_filter = ('category',)
+    list_display = ('name', 'category', 'is_featured')
+    list_editable = ('is_featured',)
+    list_filter = ('category', 'is_featured')
     search_fields = ('name', 'description')
     exclude = ('image', 'color', 'price', 'mrp')
+    ordering = ['-id']
     inlines = [ProductVariantInline]
 
 class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ('product', 'color', 'price', 'mrp', 'sale_price', 'sale_active', 'effective_price', 'is_active')
     list_editable = ('price', 'mrp', 'sale_price', 'sale_active', 'is_active')
     list_filter = ('product', 'color', 'is_active', 'sale_active')
+    ordering = ['-id']
     inlines = [ProductImageInline, ProductSizeStockInline]
     
     change_list_template = "admin/products/productvariant/change_list.html"

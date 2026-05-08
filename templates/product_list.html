@@ -46,39 +46,42 @@
                     <div class="filter-group">
                         <h4>Category</h4>
                         <div class="filter-options">
-                            <ul>
-                                {% if filter_parent_category %}
-                                <li>
-                                    <a href="?q={{ query }}&category={{ filter_parent_category.id }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}"
-                                        style="text-decoration: none; color: {% if selected_category == filter_parent_category.id|stringformat:'s' or selected_category == filter_parent_category.name %}#000; font-weight: bold;{% else %}#666;{% endif %}">
-                                        All {{ filter_parent_category.name }}
-                                    </a>
-                                </li>
-                                {% for sub in filter_parent_category.subcategories.all %}
-                                <li>
-                                    <a href="?q={{ query }}&category={{ sub.id }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}"
-                                        style="text-decoration: none; color: {% if selected_category == sub.id|stringformat:'s' or selected_category == sub.name %}#000; font-weight: bold;{% else %}#666;{% endif %}">
-                                        {{ sub.name }}
-                                    </a>
-                                </li>
-                                {% endfor %}
-                                {% else %}
-                                <li>
-                                    <a href="?q={{ query }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}"
-                                        style="text-decoration: none; color: {% if not selected_category %}#000; font-weight: bold;{% else %}#666;{% endif %}">
-                                        All Categories
-                                    </a>
-                                </li>
-                                {% for cat in categories %}
-                                <li>
-                                    <a href="?q={{ query }}&category={{ cat.id }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}"
-                                        style="text-decoration: none; color: {% if selected_category == cat.id|stringformat:'s' or selected_category == cat.name %}#000; font-weight: bold;{% else %}#666;{% endif %}">
-                                        {{ cat.name }}
-                                    </a>
-                                </li>
-                                {% endfor %}
-                                {% endif %}
-                            </ul>
+                        <div class="category-filter-list">
+                            {% if filter_parent_category %}
+                            <label class="category-checkbox-label {% if filter_parent_category.id|stringformat:'s' in selected_categories %}active{% endif %}">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" name="category" value="{{ filter_parent_category.id }}"
+                                        {% if filter_parent_category.id|stringformat:'s' in selected_categories %}checked{% endif %}>
+                                    <span class="checkbox-custom"></span>
+                                    <span class="category-name-text">All {{ filter_parent_category.name }}</span>
+                                </div>
+                                <span class="category-count">({{ filter_parent_category.product_count }})</span>
+                            </label>
+                            {% for sub in filter_parent_category.subcategories.all %}
+                            <label class="category-checkbox-label {% if sub.id|stringformat:'s' in selected_categories %}active{% endif %}">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" name="category" value="{{ sub.id }}"
+                                        {% if sub.id|stringformat:'s' in selected_categories %}checked{% endif %}>
+                                    <span class="checkbox-custom"></span>
+                                    <span class="category-name-text">{{ sub.name }}</span>
+                                </div>
+                                <span class="category-count">({{ sub.product_count }})</span>
+                            </label>
+                            {% endfor %}
+                            {% else %}
+                            {% for cat in categories %}
+                            <label class="category-checkbox-label {% if cat.id|stringformat:'s' in selected_categories %}active{% endif %}">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" name="category" value="{{ cat.id }}"
+                                        {% if cat.id|stringformat:'s' in selected_categories %}checked{% endif %}>
+                                    <span class="checkbox-custom"></span>
+                                    <span class="category-name-text">{{ cat.name }}</span>
+                                </div>
+                                <span class="category-count">({{ cat.product_count }})</span>
+                            </label>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
                         </div>
                     </div>
 
@@ -116,25 +119,25 @@
                         <div class="filter-options">
                             <ul>
                                 <li>
-                                    <a href="?q={{ query }}&category={{ selected_category }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
+                                    <a href="?q={{ query }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
                                         style="text-decoration: none; color: {% if not request.GET.discount %}#000; font-weight: bold;{% else %}#666;{% endif %}">
                                         All
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="?q={{ query }}&category={{ selected_category }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=10{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
+                                    <a href="?q={{ query }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=10{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
                                         style="text-decoration: none; color: {% if request.GET.discount == '10' %}#000; font-weight: bold;{% else %}#666;{% endif %}">
                                         10% or more
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="?q={{ query }}&category={{ selected_category }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=30{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
+                                    <a href="?q={{ query }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=30{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
                                         style="text-decoration: none; color: {% if request.GET.discount == '30' %}#000; font-weight: bold;{% else %}#666;{% endif %}">
                                         30% or more
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="?q={{ query }}&category={{ selected_category }}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=50{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
+                                    <a href="?q={{ query }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&min_price={{ min_price }}&max_price={{ max_price }}&sort={{ sort }}&discount=50{% for cid in selected_color_ids %}&color={{ cid }}{% endfor %}"
                                         style="text-decoration: none; color: {% if request.GET.discount == '50' %}#000; font-weight: bold;{% else %}#666;{% endif %}">
                                         50% or more
                                     </a>

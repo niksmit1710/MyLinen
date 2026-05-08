@@ -67,14 +67,34 @@ def _render_checkout(request, cart, total, form_data=None, error=None):
         except Coupon.DoesNotExist:
             del request.session['applied_coupon']
 
+    from accounts.models import Wallet
+    from decimal import Decimal
+    
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    wallet_balance = wallet.balance
+    
+    # Calculate wallet deduction
+    wallet_used = min(wallet_balance, final_total)
+    payable_amount = final_total - wallet_used
+
+    if not form_data:
+        form_data = {
+            'full_name': request.user.get_full_name() or request.user.username,
+            'email': request.user.email,
+            'phone_number': request.user.phone_number,
+        }
+
     return render(request, 'checkout.html', {
         'cart': cart,
         'total': total,
         'applied_coupon': applied_coupon,
         'discount_amount': discount_amount,
         'final_total': final_total,
+        'wallet_balance': wallet_balance,
+        'wallet_used': wallet_used,
+        'payable_amount': payable_amount,
         'RAZORPAY_KEY_ID': settings.RAZORPAY_KEY_ID,
-        'form_data': form_data or {},
+        'form_data': form_data,
         'error': error,
     })
 
@@ -129,11 +149,26 @@ def checkout(request):
             'payment_method': payment_method,
         }
 
-        if not all([full_name, email, phone_number, address, city, state, pincode, payment_method]):
-            error = 'Please fill all checkout details and select a payment method.'
+        # Re-calculate wallet logic to check if payment_method is required
+        from accounts.models import Wallet
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        wallet_used_check = min(wallet.balance, final_total)
+        payable_amount_check = final_total - wallet_used_check
+
+        if not all([full_name, email, phone_number, address, city, state, pincode]):
+            error = 'Please fill all checkout details.'
             if is_ajax:
                 return JsonResponse({'status': 'failed', 'error': error}, status=400)
             return _render_checkout(request, cart, total, form_data=form_data, error=error)
+
+        if payable_amount_check > 0 and not payment_method:
+            error = 'Please select a payment method.'
+            if is_ajax:
+                return JsonResponse({'status': 'failed', 'error': error}, status=400)
+            return _render_checkout(request, cart, total, form_data=form_data, error=error)
+        
+        if payable_amount_check == 0:
+            payment_method = 'wallet'
 
         with transaction.atomic():
             locked_stocks = []
@@ -150,6 +185,12 @@ def checkout(request):
                         return JsonResponse({'status': 'failed', 'error': error}, status=409)
                     return _render_checkout(request, cart, total, form_data=form_data, error=error)
 
+            # Wallet Logic
+            from accounts.models import Wallet, WalletTransaction
+            wallet, _ = Wallet.objects.select_for_update().get_or_create(user=request.user)
+            wallet_used = min(wallet.balance, final_total)
+            payable_amount = final_total - wallet_used
+
             order = Order.objects.create(
                 user=request.user,
                 full_name=full_name,
@@ -164,8 +205,22 @@ def checkout(request):
                 coupon_code=applied_coupon.code if applied_coupon else None,
                 discount_amount=discount_amount,
                 total_amount=final_total,
-                payment_method=payment_method
+                payment_method=payment_method,
+                wallet_amount_used=wallet_used,
+                is_paid=(payable_amount == 0)
             )
+            
+            # Debit wallet
+            if wallet_used > 0:
+                wallet.balance -= wallet_used
+                wallet.save()
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    transaction_type='debit',
+                    amount=wallet_used,
+                    description=f"Used for Order #{order.id}"
+                )
+
             Shipment.objects.create(
                 order=order,
                 status=order.status,
@@ -173,11 +228,22 @@ def checkout(request):
                 estimated_delivery_date=_default_estimated_delivery_date(order),
             )
 
-            # Update user phone number if not set and phone is unique
-            if not request.user.phone_number:
-                if not User.objects.filter(phone_number=phone_number).exists():
-                    request.user.phone_number = phone_number
-                    request.user.save()
+            # Update user profile information
+            user = request.user
+            name_parts = full_name.split(' ', 1)
+            user.first_name = name_parts[0]
+            if len(name_parts) > 1:
+                user.last_name = name_parts[1]
+            
+            # Update email if not set or changed
+            user.email = email
+
+            # Update phone number if not set or changed, and if not already taken
+            if not user.phone_number or user.phone_number != phone_number:
+                if not User.objects.filter(phone_number=phone_number).exclude(id=user.id).exists():
+                    user.phone_number = phone_number
+            
+            user.save()
 
             for item, stock in locked_stocks:
                 OrderItem.objects.create(
@@ -202,6 +268,14 @@ def checkout(request):
         if 'applied_coupon' in request.session:
             del request.session['applied_coupon']
 
+        # If fully paid via wallet
+        if payable_amount == 0:
+            request.session['last_order_id'] = order.id
+            request.session['cart'] = {}
+            if is_ajax:
+                return JsonResponse({'status': 'paid', 'order_id': order.id})
+            return redirect('order_success')
+
         if payment_method == 'cod':
             request.session['last_order_id'] = order.id
             request.session['cart'] = {}
@@ -214,7 +288,7 @@ def checkout(request):
             ))
 
             payment = client.order.create({
-                'amount': int(final_total * 100),
+                'amount': int(payable_amount * 100),
                 'currency': 'INR',
                 'payment_capture': 1
             })
@@ -359,6 +433,7 @@ def order_detail(request, order_id):
             'items__variant',
             'items__variant__product',
             'items__variant__product__variants__size_stocks__size',
+            'items__return_requests',
             'return_requests__images',
             Prefetch(
                 'shipment_set',
@@ -400,10 +475,9 @@ def order_detail(request, order_id):
         if today <= return_deadline:
             return_eligible = True
 
-        # Map existing active requests per item
+        # Map existing requests per item (active and completed)
         for req in order.return_requests.all():
-            if req.is_active:
-                existing_requests[req.order_item_id] = req
+            existing_requests[req.order_item_id] = req
 
         # Determine eligible items (delivered, within window, no active request)
         if return_eligible:

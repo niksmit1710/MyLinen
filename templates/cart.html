@@ -102,9 +102,20 @@
                             <span class="free-text">FREE</span>
                         </div>
                         <div class="summary-row total-row">
-                            <span>ESTIMATED TOTAL</span>
+                            <span>ORDER TOTAL</span>
                             <span id="grand-total-val">₹{{ grand_total }}</span>
                         </div>
+
+                        {% if user.is_authenticated %}
+                        <div id="wallet-row" class="summary-row wallet-deduction" style="{% if wallet_used == 0 %}display:none;{% endif %}">
+                            <span title="Your balance: ₹{{ wallet_balance }}">Wallet Balance Used</span>
+                            <span id="wallet-used-val">-₹{{ wallet_used }}</span>
+                        </div>
+                        <div class="summary-row total-row final-payable">
+                            <span>FINAL PAYABLE</span>
+                            <span id="payable-val">₹{{ payable_amount }}</span>
+                        </div>
+                        {% endif %}
 
                         {% if not applied_coupon %}
                         <div class="coupon-section" style="margin-top: 20px;">
@@ -265,6 +276,21 @@
                             document.getElementById('discount-val').innerText = `-₹${data.discount_amount}`;
                         } else {
                             document.getElementById('coupon-row').style.display = 'none';
+                        }
+
+                        // Update wallet summary if elements exist
+                        const walletRow = document.getElementById('wallet-row');
+                        const walletUsedVal = document.getElementById('wallet-used-val');
+                        const payableVal = document.getElementById('payable-val');
+
+                        if (walletRow && walletUsedVal && payableVal) {
+                            if (data.wallet_used > 0) {
+                                walletRow.style.display = 'flex';
+                                walletUsedVal.innerText = `-₹${data.wallet_used}`;
+                            } else {
+                                walletRow.style.display = 'none';
+                            }
+                            payableVal.innerText = `₹${data.payable_amount}`;
                         }
 
                         if (data.cart_count === 0) {

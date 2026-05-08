@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 <main class="about-page">
 
-    <section class="about-hero">
+    <!-- Hero Section -->
+    <section class="about-hero fade-in">
         <div class="hero-content">
-            <p class="pre-title">OUR STORY</p>
-            <h1 class="about-title">Woven by Nature,<br>Tailored for Life</h1>
+            <span class="pre-title">ESTABLISHED 2024</span>
+            <h1 class="about-title">Woven by Nature,<br><span class="italic-title">Tailored for Life</span></h1>
+            <div class="hero-divider"></div>
             <p class="about-intro">
                 At MyLinen, we believe that the clothes we wear should be as enduring as the memories we make in them.
                 Founded on the principles of sustainability and timeless design, we create pieces that celebrate the
@@ -15,53 +18,70 @@
         </div>
     </section>
 
-    <section class="about-mission">
+    <!-- Mission Section -->
+    <section class="about-mission section-padding">
         <div class="mission-grid">
-            <div class="mission-text">
+            <div class="mission-text slide-up">
+                <span class="section-tag">OUR PHILOSOPHY</span>
                 <h2>Conscious Craftsmanship</h2>
                 <p>Every MyLinen garment begins in the flax fields. We partner with small-scale weavers who treat every
                     thread with respect. By choosing linen, we choose a path that consumes less water and leaves a
                     smaller footprint on our Earth.</p>
                 <p>Our designs don't chase seasons. We create silhouettes that remain relevant decade after decade,
                     softening and growing more beautiful with every wash.</p>
+                <div class="quote-box">
+                    <p class="quote-text">"Linen is not just a fabric; it's a connection to the earth and a commitment to longevity."</p>
+                </div>
             </div>
-            <div class="mission-visual">
-                <div class="image-placeholder-luxury">
+            <div class="mission-visual reveal">
+                <div class="luxury-image-wrapper">
+                    <img src="{% static 'images/about-luxury.png' %}" alt="Luxury Linen Texture" class="about-luxury-img">
+                    <div class="image-accent"></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="why-linen">
-        <div class="section-header">
+    <!-- Why Linen Section -->
+    <section class="why-linen section-padding">
+        <div class="section-header fade-in">
+            <span class="section-tag">THE FABRIC OF THE GODS</span>
             <h2 class="serif-title">Why Linen?</h2>
             <div class="title-accent"></div>
         </div>
 
         <div class="benefits-grid">
-            <div class="benefit-card">
-                <span class="benefit-number">01</span>
+            <div class="benefit-card slide-up" style="transition-delay: 0.1s;">
+                <div class="benefit-icon">
+                    <i class="fa-solid fa-wind"></i>
+                </div>
                 <h3>Breathability</h3>
                 <p>Linen is a natural insulator. It keeps you cool in the heat of summer and retains warmth during
                     cooler evenings, making it the perfect year-round companion.</p>
             </div>
 
-            <div class="benefit-card">
-                <span class="benefit-number">02</span>
+            <div class="benefit-card slide-up" style="transition-delay: 0.2s;">
+                <div class="benefit-icon">
+                    <i class="fa-solid fa-shield-heart"></i>
+                </div>
                 <h3>Endurance</h3>
-                bruised by time. Linen is one of the world’s strongest natural fibers. Unlike synthetic blends, it won't
-                pill or lose its shape, lasting for generations.</p>
+                <p>Linen is one of the world’s strongest natural fibers. Unlike synthetic blends, it won't
+                    pill or lose its shape, lasting for generations and softening over time.</p>
             </div>
 
-            <div class="benefit-card">
-                <span class="benefit-number">03</span>
+            <div class="benefit-card slide-up" style="transition-delay: 0.3s;">
+                <div class="benefit-icon">
+                    <i class="fa-solid fa-leaf"></i>
+                </div>
                 <h3>Hypoallergenic</h3>
                 <p>Gentle on sensitive skin and naturally antibacterial. Because the flax plant requires fewer
                     pesticides, the fabric remains pure and kind to your body.</p>
             </div>
 
-            <div class="benefit-card">
-                <span class="benefit-number">04</span>
+            <div class="benefit-card slide-up" style="transition-delay: 0.4s;">
+                <div class="benefit-icon">
+                    <i class="fa-solid fa-earth-americas"></i>
+                </div>
                 <h3>Sustainable</h3>
                 <p>Flax is a resilient crop that grows in poor soil with minimal water. Every part of the plant is used,
                     ensuring zero waste from field to fabric.</p>
@@ -69,10 +89,46 @@
         </div>
     </section>
 
-    <section class="about-cta">
-        <h2 class="serif-title">Experience the Texture</h2>
-        <a href="{% url 'product_list' %}" class="mylinen-btn-outline">SHOP THE COLLECTION</a>
+    <!-- Brand Values / Crafting -->
+    <section class="crafting-process section-padding fade-in">
+        <div class="crafting-content">
+            <div class="crafting-text">
+                <span class="section-tag">THE PROCESS</span>
+                <h2>From Field to Wardrobe</h2>
+                <p>Our journey is one of patience. From the careful harvesting of flax to the meticulous weaving of the fabric, every step is performed with an unwavering commitment to quality. We believe in slow fashion—where every stitch matters.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="about-cta section-padding fade-in">
+        <div class="cta-container">
+            <h2 class="serif-title">Experience the Texture</h2>
+            <p>Discover our latest collection of premium linen essentials.</p>
+            <a href="{% url 'product_list' %}" class="mylinen-btn-luxury">SHOP THE COLLECTION</a>
+        </div>
     </section>
 
 </main>
-{% endblock %}
+
+<script>
+    // Simple intersection observer for reveal animations
+    document.addEventListener('DOMContentLoaded', function() {
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in, .slide-up, .reveal').forEach(el => {
+            observer.observe(el);
+        });
+    });
+</script>
+{% endblock %}

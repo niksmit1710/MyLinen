@@ -2,202 +2,298 @@
 {% load static %}
 
 {% block content %}
-    <section class="hero-section">
-        <div class="hero-container">
-            <div class="hero-content">
-                <h1 class="hero-title">
-                    EFFORTLESS STYLE,<br>
-                    NATURAL COMFORT
-                </h1>
-                <p class="hero-subtitle">
-                    Sustainable Linen Garments for Women & Girls
-                </p>
-                <a href="{% url 'product_list' %}" class="hero-button">EXPLORE COLLECTIONS</a>
+<section class="hero-section">
+    <div class="hero-container">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                EFFORTLESS STYLE,<br>
+                NATURAL COMFORT
+            </h1>
+            <p class="hero-subtitle">
+                Sustainable Linen Garments for Women & Girls
+            </p>
+            <a href="{% url 'product_list' %}" class="hero-button">EXPLORE COLLECTIONS</a>
+        </div>
+    </div>
+</section>
+
+<section class="collections-section">
+    <h2 class="section-header">OUR CURATED COLLECTIONS</h2>
+
+    <div class="collections-grid">
+        <a href="{% url 'product_list' %}?category=women" class="collection-card">
+            <div class="image-wrapper">
+                <img src="{% static 'images/women.png' %}" alt="Women's Linen Collection" loading="lazy">
+            </div>
+            <div class="card-info">
+                <h3 class="card-title">FOR WOMEN</h3>
+                <span class="shop-link">Shop All Women</span>
+            </div>
+        </a>
+
+        <a href="{% url 'product_list' %}?category=girls" class="collection-card">
+            <div class="image-wrapper">
+                <img src="{% static 'images/girls.png' %}" alt="Girl's Linen Collection" loading="lazy">
+            </div>
+            <div class="card-info">
+                <h3 class="card-title">FOR GIRLS</h3>
+                <span class="shop-link">Shop All Girls</span>
+            </div>
+        </a>
+    </div>
+</section>
+
+<section class="women-categories-section">
+    <h2 class="section-title">SHOP WOMEN BY CATEGORY</h2>
+
+    <div class="categories-grid">
+
+        <!-- Dresses -->
+        <a href="{% url 'product_list' %}?category=dress" class="category-item">
+            <div class="category-image-wrapper">
+                <img src="{% static 'images/women-dresses.png' %}" alt="Dresses">
+            </div>
+            <h3 class="category-name">DRESSES</h3>
+        </a>
+
+        <!-- Tops -->
+        <a href="{% url 'product_list' %}?category=tops" class="category-item">
+            <div class="category-image-wrapper">
+                <img src="{% static 'images/women-tops.png' %}" alt="Tops">
+            </div>
+            <h3 class="category-name">TOPS</h3>
+        </a>
+
+        <!-- Bottoms (Pants + Skirts) -->
+        <a href="{% url 'product_list' %}?category=pants&category=skirts" class="category-item">
+            <div class="category-image-wrapper">
+                <img src="{% static 'images/women-bottoms.png' %}" alt="Bottoms">
+            </div>
+            <h3 class="category-name">BOTTOMS</h3>
+        </a>
+
+        <!-- Sets -->
+        <a href="{% url 'product_list' %}?category=sets" class="category-item">
+            <div class="category-image-wrapper">
+                <img src="{% static 'images/women-sets.png' %}" alt="Sets">
+            </div>
+            <h3 class="category-name">SETS</h3>
+        </a>
+
+    </div>
+</section>
+<section class="girls-categories-section">
+    <h2 class="section-title">SHOP GIRLS BY CATEGORY</h2>
+
+    <div class="categories-grid">
+
+        <!-- Frocks -->
+        <a href="{% url 'product_list' %}?category=frock" class="category-item">
+            <div class="category-image-wrapper">
+                <img src="{% static 'images/girls-frocks.png' %}" alt="Girls Frocks">
+            </div>
+            <h3 class="category-name">FROCKS</h3>
+        </a>
+
+        <!-- Tops -->
+        <a href="{% url 'product_list' %}?category=tops" class="category-item">
+            <div class="category-image-wrapper">
+                <img src="{% static 'images/girls-tops.png' %}" alt="Girls Tops">
+            </div>
+            <h3 class="category-name">TOPS</h3>
+        </a>
+
+        <!-- Bottoms -->
+        <a href="{% url 'product_list' %}?category=pants&category=skirts" class="category-item">
+            <div class="category-image-wrapper">
+                <img src="{% static 'images/girls-bottoms.png' %}" alt="Girls Bottoms">
+            </div>
+            <h3 class="category-name">BOTTOMS</h3>
+        </a>
+
+        <!-- Sets -->
+        <a href="{% url 'product_list' %}?category=sets" class="category-item">
+            <div class="category-image-wrapper">
+                <img src="{% static 'images/girls-sets.png' %}" alt="Girls Sets">
+            </div>
+            <h3 class="category-name">SETS</h3>
+        </a>
+
+    </div>
+</section>
+
+
+
+<section class="trending-section">
+    <h2 class="section-title">TRENDING NOW</h2>
+
+    <div class="product-grid">
+        {% for product in trending_products %}
+        <div class="product-card">
+            <a href="{% url 'product_detail' product.id %}" style="text-decoration: none; color: inherit;">
+                <div class="product-image">
+                    {% if product.primary_image %}
+                    <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" loading="lazy">
+                    {% else %}
+                    <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy">
+                    {% endif %}
+                    {% if product.discount_percentage > 0 %}
+                    <span class="discount-badge">{{ product.discount_percentage }}% OFF</span>
+                    {% endif %}
+                </div>
+                <div class="product-info">
+                    <p class="product-name">{{ product.name }}</p>
+                    <div class="product-card-rating">
+                        {% for i in "12345" %}
+                        {% if forloop.counter <= product.avg_rating %} <i class="fa-solid fa-star"></i>
+                            {% else %}
+                            <i class="fa-regular fa-star"></i>
+                            {% endif %}
+                            {% endfor %}
+                            {% if product.review_count > 0 %}
+                            <span class="product-card-review-count">({{ product.review_count }})</span>
+                            {% endif %}
+                    </div>
+                    <div class="price-row" style="display: flex; gap: 8px; align-items: baseline;">
+                        {% if product.display_mrp and product.display_mrp > product.display_price %}
+                        <span class="mrp-price">₹{{ product.display_mrp|floatformat:2 }}</span>
+                        {% endif %}
+                        <span class="price">₹{{ product.display_price|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </a>
+            <div style="margin-top: auto;">
+                <button class="add-to-cart wishlist-card-btn" data-product-id="{{ product.id }}"
+                    style="background-color: {% if product.id in wishlist_product_ids %}#1a1a18{% else %}#fff{% endif %}; color: {% if product.id in wishlist_product_ids %}#fff{% else %}#1a1a18{% endif %}; border: 1px solid #1a1a18; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i
+                        class="{% if product.id in wishlist_product_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+                    <span class="wishlist-btn-text">{% if product.id in wishlist_product_ids %}WISHLISTED{% else %}ADD
+                        TO WISHLIST{% endif %}</span>
+                </button>
             </div>
         </div>
-    </section>
+        {% endfor %}
+    </div>
+</section>
 
-    <section class="trending-section">
-        <h2 class="section-title">TRENDING NOW</h2>
 
-        <div class="product-grid">
-            {% for product in featured_products %}
-            <div class="product-card">
+
+
+
+<section class="trending-section related-products-section"
+    style="background-color: #fff; border-top: 1px solid #eee; position: relative;">
+    <h2 class="section-title">YOU MAY ALSO LIKE</h2>
+
+    <div class="slider-controls">
+        <button class="slider-btn prev" onclick="scrollSlider('also-like-slider', -1)">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button class="slider-btn next" onclick="scrollSlider('also-like-slider', 1)">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <div class="product-slider-container" id="also-like-slider">
+        <div class="product-slider-track">
+            {% for product in also_like_products %}
+            <div class="product-card slider-item">
                 <a href="{% url 'product_detail' product.id %}" style="text-decoration: none; color: inherit;">
                     <div class="product-image">
                         {% if product.primary_image %}
-                            <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" loading="lazy">
+                        <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" loading="lazy">
                         {% else %}
-                            <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy">
-                        {% endif %}
-                        {% if product.discount_percentage > 0 %}
-                            <span class="discount-badge">{{ product.discount_percentage }}% OFF</span>
+                        <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy">
                         {% endif %}
                     </div>
                     <div class="product-info">
                         <p class="product-name">{{ product.name }}</p>
                         <div class="product-card-rating">
                             {% for i in "12345" %}
-                                {% if forloop.counter <= product.avg_rating %}
-                                <i class="fa-solid fa-star"></i>
+                            {% if forloop.counter <= product.avg_rating %} <i class="fa-solid fa-star"></i>
                                 {% else %}
                                 <i class="fa-regular fa-star"></i>
                                 {% endif %}
-                            {% endfor %}
-                            {% if product.review_count > 0 %}
-                            <span class="product-card-review-count">({{ product.review_count }})</span>
-                            {% endif %}
+                                {% endfor %}
                         </div>
-                        <div class="price-row" style="display: flex; gap: 8px; align-items: baseline;">
-                            {% if product.display_mrp and product.display_mrp > product.display_price %}
-                            <span class="mrp-price">₹{{ product.display_mrp|floatformat:2 }}</span>
-                            {% endif %}
-                            <span class="price">₹{{ product.display_price|floatformat:2 }}</span>
+                        <div class="price-row">
+                            <span class="price">₹{{ product.display_price|floatformat:0 }}</span>
                         </div>
                     </div>
                 </a>
-                <div style="margin-top: auto;">
-                    <button class="add-to-cart wishlist-card-btn" data-product-id="{{ product.id }}" style="background-color: {% if product.id in wishlist_product_ids %}#1a1a18{% else %}#fff{% endif %}; color: {% if product.id in wishlist_product_ids %}#fff{% else %}#1a1a18{% endif %}; border: 1px solid #1a1a18; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <i class="{% if product.id in wishlist_product_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
-                        <span class="wishlist-btn-text">{% if product.id in wishlist_product_ids %}WISHLISTED{% else %}ADD TO WISHLIST{% endif %}</span>
+                <div style="margin-top: auto; padding: 0 15px 15px;">
+                    <button class="add-to-cart wishlist-card-btn" data-product-id="{{ product.id }}"
+                        style="background-color: {% if product.id in wishlist_product_ids %}#1a1a18{% else %}#fff{% endif %}; color: {% if product.id in wishlist_product_ids %}#fff{% else %}#1a1a18{% endif %}; border: 1px solid #1a1a18; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 8px; font-size: 11px; min-height: 40px; margin-top: 10px;">
+                        <i
+                            class="{% if product.id in wishlist_product_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+                        <span class="wishlist-btn-text" style="font-weight: 600; letter-spacing: 0.5px;">
+                            {% if product.id in wishlist_product_ids %}WISHLISTED{% else %}ADD TO WISHLIST{% endif %}
+                        </span>
                     </button>
                 </div>
             </div>
             {% endfor %}
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- Hardcoded second section as per original index.html, could be another category -->
-    <section class="trending-section">
-        <h2 class="section-title">BESTSELLERS</h2>
+<section class="testimonials-section">
+    <h2 class="section-title">CLIENT FAVORITES</h2>
 
-        <div class="product-grid">
-            {% for product in featured_products|slice:":4" %}
-            <div class="product-card">
-                <a href="{% url 'product_detail' product.id %}" style="text-decoration: none; color: inherit;">
-                    <div class="product-image">
-                        {% if product.primary_image %}
-                            <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" loading="lazy">
-                        {% else %}
-                            <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy">
-                        {% endif %}
-                        {% if product.discount_percentage > 0 %}
-                            <span class="discount-badge">{{ product.discount_percentage }}% OFF</span>
-                        {% endif %}
-                    </div>
-                    <div class="product-info">
-                        <p class="product-name">{{ product.name }}</p>
-                        <div class="product-card-rating">
-                            {% for i in "12345" %}
-                                {% if forloop.counter <= product.avg_rating %}
-                                <i class="fa-solid fa-star"></i>
-                                {% else %}
-                                <i class="fa-regular fa-star"></i>
-                                {% endif %}
-                            {% endfor %}
-                            {% if product.review_count > 0 %}
-                            <span class="product-card-review-count">({{ product.review_count }})</span>
-                            {% endif %}
-                        </div>
-                        <div class="price-row" style="display: flex; gap: 8px; align-items: baseline;">
-                            {% if product.display_mrp and product.display_mrp > product.display_price %}
-                            <span class="mrp-price">₹{{ product.display_mrp|floatformat:2 }}</span>
-                            {% endif %}
-                            <span class="price">₹{{ product.display_price|floatformat:2 }}</span>
-                        </div>
-                    </div>
-                </a>
-                <div style="margin-top: auto;">
-                    <button class="add-to-cart wishlist-card-btn" data-product-id="{{ product.id }}" style="background-color: {% if product.id in wishlist_product_ids %}#1a1a18{% else %}#fff{% endif %}; color: {% if product.id in wishlist_product_ids %}#fff{% else %}#1a1a18{% endif %}; border: 1px solid #1a1a18; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <i class="{% if product.id in wishlist_product_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
-                        <span class="wishlist-btn-text">{% if product.id in wishlist_product_ids %}WISHLISTED{% else %}ADD TO WISHLIST{% endif %}</span>
-                    </button>
-                </div>
+    <div class="slider-window">
+        <div class="slider-track" id="sliderTrack">
+            <div class="testimonial-slide">
+                <p class="quote">"I have made so many sustainable and second-hand choices across the way since
+                    discovering."</p>
+                <p class="author">Isan Mann</p>
             </div>
-            {% endfor %}
-        </div>
-    </section>
 
-    <section class="collections-section">
-        <h2 class="section-header">OUR CURATED COLLECTIONS</h2>
+            <div class="testimonial-slide">
+                <p class="quote">"I love my linen pieces so much, they make me feel so comfortable and at home."</p>
+                <p class="author">Testhmana</p>
+            </div>
 
-        <div class="collections-grid">
-            <a href="{% url 'product_list' %}?category=women" class="collection-card">
-                <div class="image-wrapper">
-                    <img src="{% static 'images/women.png' %}" alt="Women's Linen Collection" loading="lazy">
-                </div>
-                <div class="card-info">
-                    <h3 class="card-title">FOR WOMEN</h3>
-                    <span class="shop-link">Shop All Women</span>
-                </div>
-            </a>
+            <div class="testimonial-slide">
+                <h3 class="about-title" style="font-size: large;">ABOUT PURELY LINEN</h3>
+                <p class="about-text">Sustainable practices, soft fabrics, environmental consciousness and empowered
+                    women.</p>
+            </div>
 
-            <a href="{% url 'product_list' %}?category=girls" class="collection-card">
-                <div class="image-wrapper">
-                    <img src="{% static 'images/girls.png' %}" alt="Girl's Linen Collection" loading="lazy">
-                </div>
-                <div class="card-info">
-                    <h3 class="card-title">FOR GIRLS</h3>
-                    <span class="shop-link">Shop All Girls</span>
-                </div>
-            </a>
-        </div>
-    </section>
+            <!-- Repeating for slider track as in original -->
+            <div class="testimonial-slide">
+                <p class="quote">"I have made so many sustainable and second-hand choices across the way since
+                    discovering."</p>
+                <p class="author">Isan Mann</p>
+            </div>
 
-    <section class="testimonials-section">
-        <h2 class="section-title">CLIENT FAVORITES</h2>
+            <div class="testimonial-slide">
+                <p class="quote">"I love my linen pieces so much, they make me feel so comfortable and at home."</p>
+                <p class="author">Testhmana</p>
+            </div>
 
-        <div class="slider-window">
-            <div class="slider-track" id="sliderTrack">
-                <div class="testimonial-slide">
-                    <p class="quote">"I have made so many sustainable and second-hand choices across the way since discovering."</p>
-                    <p class="author">Isan Mann</p>
-                </div>
-
-                <div class="testimonial-slide">
-                    <p class="quote">"I love my linen pieces so much, they make me feel so comfortable and at home."</p>
-                    <p class="author">Testhmana</p>
-                </div>
-
-                <div class="testimonial-slide">
-                    <h3 class="about-title">ABOUT PURELY LINEN</h3>
-                    <p class="about-text">Sustainable practices, soft fabrics, environmental consciousness and empowered women.</p>
-                </div>
-
-                <!-- Repeating for slider track as in original -->
-                <div class="testimonial-slide">
-                    <p class="quote">"I have made so many sustainable and second-hand choices across the way since discovering."</p>
-                    <p class="author">Isan Mann</p>
-                </div>
-
-                <div class="testimonial-slide">
-                    <p class="quote">"I love my linen pieces so much, they make me feel so comfortable and at home."</p>
-                    <p class="author">Testhmana</p>
-                </div>
-
-                <div class="testimonial-slide">
-                    <h3 class="about-title">ABOUT PURELY LINEN</h3>
-                    <p class="about-text">Sustainable practices, soft fabrics, environmental consciousness and empowered women.</p>
-                </div>
+            <div class="testimonial-slide">
+                <h3 class="about-title" style="font-size: large;">ABOUT PURELY LINEN</h3>
+                <p class="about-text">Sustainable practices, soft fabrics, environmental consciousness and empowered
+                    women.</p>
             </div>
         </div>
+    </div>
 
-        <div class="pagination">
-            <span class="dot active" onclick="currentSlide(0)"></span>
-            <span class="dot" onclick="currentSlide(1)"></span>
-            <span class="dot" onclick="currentSlide(2)"></span>
-            <span class="dot" onclick="currentSlide(3)"></span>
-            <span class="dot" onclick="currentSlide(4)"></span>
-            <span class="dot" onclick="currentSlide(5)"></span>
-        </div>
-    </section>
+    <div class="pagination">
+        <span class="dot active" onclick="currentSlide(0)"></span>
+        <span class="dot" onclick="currentSlide(1)"></span>
+        <span class="dot" onclick="currentSlide(2)"></span>
+        <span class="dot" onclick="currentSlide(3)"></span>
+        <span class="dot" onclick="currentSlide(4)"></span>
+        <span class="dot" onclick="currentSlide(5)"></span>
+    </div>
+</section>
 
 <script>
     document.querySelectorAll('.product-card form').forEach(form => {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             const submitBtn = form.querySelector('button');
             console.log('Button clicked:', submitBtn.innerText, 'data-added:', submitBtn.getAttribute('data-added'));
-            
+
             if (submitBtn.getAttribute('data-added') === 'true') {
                 console.log('Redirecting to cart...');
                 e.preventDefault();
@@ -215,33 +311,33 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    submitBtn.innerText = 'GO TO BAG';
-                    submitBtn.setAttribute('data-added', 'true');
-                    console.log('Button updated to GO TO BAG');
-                    submitBtn.style.backgroundColor = '#1a1a18';
-                    submitBtn.style.color = '#fff';
-                    
-                    // Update cart count badge
-                    const badge = document.querySelector('.badge-count');
-                    if (badge) {
-                        badge.innerText = data.cart_count;
-                    } else {
-                        const cartAnchor = document.querySelector('.cart-anchor');
-                        if (cartAnchor) {
-                            const newBadge = document.createElement('span');
-                            newBadge.className = 'badge-count';
-                            newBadge.innerText = data.cart_count;
-                            cartAnchor.appendChild(newBadge);
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        submitBtn.innerText = 'GO TO BAG';
+                        submitBtn.setAttribute('data-added', 'true');
+                        console.log('Button updated to GO TO BAG');
+                        submitBtn.style.backgroundColor = '#1a1a18';
+                        submitBtn.style.color = '#fff';
+
+                        // Update cart count badge
+                        const badge = document.querySelector('.badge-count');
+                        if (badge) {
+                            badge.innerText = data.cart_count;
+                        } else {
+                            const cartAnchor = document.querySelector('.cart-anchor');
+                            if (cartAnchor) {
+                                const newBadge = document.createElement('span');
+                                newBadge.className = 'badge-count';
+                                newBadge.innerText = data.cart_count;
+                                cartAnchor.appendChild(newBadge);
+                            }
                         }
+                    } else {
+                        alert(data.message || 'Something went wrong');
                     }
-                } else {
-                    alert(data.message || 'Something went wrong');
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                })
+                .catch(error => console.error('Error:', error));
         });
     });
 
@@ -250,7 +346,7 @@
     const track = document.getElementById('sliderTrack');
     function currentSlide(idx) {
         currentIdx = idx;
-        const offset = -idx * (100 / 6) * 2; 
+        const offset = -idx * (100 / 6) * 2;
         track.style.transform = `translateX(${offset}%)`;
         const dots = document.querySelectorAll('.dot');
         dots.forEach(d => d.classList.remove('active'));

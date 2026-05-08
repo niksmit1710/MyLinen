@@ -84,6 +84,7 @@ class Order(models.Model):
     is_paid = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS)
+    wallet_amount_used = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def __str__(self):
         return f"Order {self.id}"
@@ -104,6 +105,11 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product_name_at_purchase} ({self.color_at_purchase} - {self.size_at_purchase})"
+
+    @property
+    def is_returned(self):
+        """Returns True if the item has a completed return request."""
+        return self.return_requests.filter(request_type='return', status='completed').exists()
 
 
 # ===== Return & Exchange System =====
@@ -152,6 +158,7 @@ class ReturnExchangeRequest(models.Model):
     status = models.CharField(
         max_length=20, choices=REQUEST_STATUS_CHOICES, default='pending'
     )
+    is_refunded = models.BooleanField(default=False, help_text="Checked if the refund has been credited to wallet")
     admin_notes = models.TextField(blank=True)
     requested_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -166,6 +173,36 @@ class ReturnExchangeRequest(models.Model):
     def is_active(self):
         """Request is active if not completed or rejected."""
         return self.status not in ('completed', 'rejected')
+
+    def save(self, *args, **kwargs):
+        # Handle Wallet Refund when status is set to 'completed'
+        if self.pk:
+            old_instance = ReturnExchangeRequest.objects.get(pk=self.pk)
+            if old_instance.status != 'completed' and self.status == 'completed':
+                if self.request_type == 'return' and not self.is_refunded:
+                    self._process_wallet_refund()
+        
+        super().save(*args, **kwargs)
+
+    def _process_wallet_refund(self):
+        """Credit the item amount to the user's wallet."""
+        from accounts.models import Wallet, WalletTransaction
+        from django.db import transaction
+
+        with transaction.atomic():
+            wallet, created = Wallet.objects.get_or_create(user=self.user)
+            refund_amount = self.order_item.price * self.order_item.quantity
+            
+            wallet.balance += refund_amount
+            wallet.save()
+
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                transaction_type='credit',
+                amount=refund_amount,
+                description=f"Refund for Return Request #{self.id} (Order #{self.order.id})"
+            )
+            self.is_refunded = True
 
 
 def return_image_upload_path(instance, filename):

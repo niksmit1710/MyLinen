@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-i%+199@l_!@jgg@6zif%o%1x#7!j4xgsftm@a(xvi+$iv^bi@e"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['mylinen.onrender.com']
 
 
 # Application definition
@@ -73,9 +73,8 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 # Allauth Settings
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
@@ -88,6 +87,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = "mylinen.urls"
@@ -171,3 +171,5 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 RAZORPAY_KEY_ID = 'rzp_test_SgnlUShPZzZePw'
 RAZORPAY_KEY_SECRET = 'RqWMAqYqRBHRhPpcKQPxzz5b'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

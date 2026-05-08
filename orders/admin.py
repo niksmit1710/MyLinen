@@ -3,8 +3,10 @@ from .models import Order, OrderItem, Coupon, ReturnExchangeRequest, ReturnExcha
 
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'phone_number', 'email', 'total_amount', 'payment_method', 'status', 'coupon_code']
-    list_filter = ['status', 'payment_method']
+    list_display = ['id', 'user', 'phone_number', 'total_amount', 'wallet_amount_used', 'payment_method', 'status', 'is_paid']
+    list_filter = ['status', 'payment_method', 'is_paid']
+    list_editable = ['status']
+    readonly_fields = ['wallet_amount_used']
     search_fields = ['user__username', 'id', 'coupon_code', 'phone_number', 'email']
 
 
@@ -30,13 +32,14 @@ class ReturnExchangeRequestAdmin(admin.ModelAdmin):
         'reason', 'status', 'requested_at'
     ]
     list_filter = ['status', 'request_type', 'reason', 'requested_at']
+    list_editable = ['status']
     search_fields = [
         'user__username', 'order__id', 'order_item__product_name_at_purchase', 'comment'
     ]
-    readonly_fields = ('user', 'order', 'order_item', 'request_type', 'reason', 'comment', 'exchange_size', 'requested_at', 'updated_at')
+    readonly_fields = ('user', 'order', 'order_item', 'request_type', 'reason', 'comment', 'exchange_size', 'is_refunded', 'requested_at', 'updated_at')
     fields = (
         'user', 'order', 'order_item', 'request_type', 'reason', 'comment',
-        'exchange_size', 'status', 'admin_notes', 'requested_at', 'updated_at'
+        'exchange_size', 'status', 'is_refunded', 'admin_notes', 'requested_at', 'updated_at'
     )
     inlines = [ReturnExchangeImageInline]
 

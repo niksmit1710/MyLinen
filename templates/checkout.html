@@ -22,21 +22,21 @@
                 <section class="checkout-section">
                     <h2 class="section-label">01. Delivery Address</h2>
                     <div class="form-stack">
-                        <input type="text" name="full_name" placeholder="Full Name" required>
+                        <input type="text" name="full_name" placeholder="Full Name" value="{{ form_data.full_name }}" required>
                         <div class="form-row">
-                            <input type="email" name="email" placeholder="Email Address" required>
-                            <input type="tel" name="phone_number" placeholder="Phone Number" required>
+                            <input type="email" name="email" placeholder="Email Address" value="{{ form_data.email }}" required>
+                            <input type="tel" name="phone_number" placeholder="Phone Number" value="{{ form_data.phone_number }}" required>
                         </div>
-                        <textarea name="address" placeholder="Shipping Address" rows="3" required></textarea>
+                        <textarea name="address" placeholder="Shipping Address" rows="3" required>{{ form_data.address }}</textarea>
                         <div class="form-row">
-                            <input type="text" name="city" placeholder="City" required>
-                            <input type="text" name="state" placeholder="State" required>
-                            <input type="text" name="pincode" placeholder="Pincode" required>
+                            <input type="text" name="city" placeholder="City" value="{{ form_data.city }}" required>
+                            <input type="text" name="state" placeholder="State" value="{{ form_data.state }}" required>
+                            <input type="text" name="pincode" placeholder="Pincode" value="{{ form_data.pincode }}" required>
                         </div>
                     </div>
                 </section>
 
-                <section class="checkout-section">
+                <section class="checkout-section" id="payment-method-section" style="{% if payable_amount == 0 %}display:none;{% endif %}">
                     <h2 class="section-label">02. Payment Method</h2>
                     <div class="payment-grid">
                         <label class="payment-box">
@@ -60,7 +60,7 @@
                 </section>
 
                 <button type="submit" class="submit-order-btn">
-                    PLACE ORDER — ₹{{ final_total|floatformat:2 }}
+                    PLACE ORDER — ₹{{ payable_amount|floatformat:2 }}
                 </button>
             </div>
 
@@ -87,13 +87,29 @@
                             <span>Subtotal</span>
                             <span>₹{{ total|floatformat:2 }}</span>
                         </div>
+                        {% if discount_amount > 0 %}
+                        <div class="total-row discount">
+                            <span>Discount</span>
+                            <span>-₹{{ discount_amount|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
                         <div class="total-row">
                             <span>Shipping</span>
                             <span class="free">FREE</span>
                         </div>
                         <div class="total-row grand-total">
-                            <span>Grand Total</span>
+                            <span>Order Total</span>
                             <span>₹{{ final_total|floatformat:2 }}</span>
+                        </div>
+                        {% if wallet_used > 0 %}
+                        <div class="total-row wallet-deduction">
+                            <span title="Your balance: ₹{{ wallet_balance|floatformat:2 }}">Wallet Balance Used</span>
+                            <span>-₹{{ wallet_used|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="total-row final-payable">
+                            <span>Final Payable</span>
+                            <span>₹{{ payable_amount|floatformat:2 }}</span>
                         </div>
                     </div>
                     <p class="secure-checkout-hint">
@@ -108,8 +124,10 @@
 <script>
     document.getElementById('checkout-form').addEventListener('submit', function (e) {
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+        const payableAmount = parseFloat("{{ payable_amount }}");
 
-        if (paymentMethod === 'online') {
+        // If payable is 0 or payment is COD, handle via AJAX to check wallet logic
+        if (payableAmount === 0 || paymentMethod === 'online') {
             e.preventDefault();
             const formData = new FormData(this);
 
@@ -123,7 +141,9 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'created') {
+                    if (data.status === 'paid') {
+                        window.location.href = "{% url 'order_success' %}";
+                    } else if (data.status === 'created') {
                         var options = {
                             "key": data.razorpay_key_id,
                             "amount": data.payment.amount,

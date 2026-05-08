@@ -112,7 +112,11 @@
                             {% if forloop.first %}checked{% endif %} {% if stock.stock == 0 %}disabled{% endif %}>
                             <label for="size-{{ stock.size.id }}" class="size-box {% if stock.stock == 0 %}out-of-stock{% endif %}">
                                 {{ stock.size.name }}
-                                <span class="stock-count">{{ stock.stock }} left</span>
+                                {% if stock.stock > 0 and stock.stock <= 5 %}
+                                    <span class="stock-count low-stock">Only {{ stock.stock }} left!</span>
+                                {% elif stock.stock > 0 %}
+                                    <span class="stock-count">{{ stock.stock }} left</span>
+                                {% endif %}
                             </label>
                             {% endfor %}
                         {% else %}
@@ -121,7 +125,11 @@
                             {% if forloop.first %}checked{% endif %} {% if stock.stock == 0 %}disabled{% endif %}>
                             <label for="size-{{ stock.size.id }}" class="size-box {% if stock.stock == 0 %}out-of-stock{% endif %}">
                                 {{ stock.size.name }}
-                                <span class="stock-count">{{ stock.stock }} left</span>
+                                {% if stock.stock > 0 and stock.stock <= 5 %}
+                                    <span class="stock-count low-stock">Only {{ stock.stock }} left!</span>
+                                {% elif stock.stock > 0 %}
+                                    <span class="stock-count">{{ stock.stock }} left</span>
+                                {% endif %}
                             </label>
                             {% endfor %}
                         {% endif %}
@@ -301,6 +309,66 @@
             {% endfor %}
         </div>
     </section>
+    
+    {% if related_products %}
+    <section class="trending-section related-products-section" style="background-color: #fff; border-top: 1px solid #eee; padding: 80px 40px; position: relative;">
+        <h2 class="section-title">YOU MAY ALSO LIKE</h2>
+
+        <div class="slider-controls">
+            <button class="slider-btn prev" onclick="scrollSlider('related-slider', -1)">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button class="slider-btn next" onclick="scrollSlider('related-slider', 1)">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="product-slider-container" id="related-slider">
+            <div class="product-slider-track">
+                {% for rp in related_products %}
+                <div class="product-card slider-item">
+                    <a href="{% url 'product_detail' rp.id %}" style="text-decoration: none; color: inherit;">
+                        <div class="product-image">
+                            {% if rp.primary_image %}
+                            <img src="{{ rp.primary_image.url }}" alt="{{ rp.name }}" loading="lazy">
+                            {% else %}
+                            <img src="{% static 'images/placeholder.png' %}" alt="{{ rp.name }}" loading="lazy">
+                            {% endif %}
+                        </div>
+                        <div class="product-info">
+                            <p class="product-name">{{ rp.name }}</p>
+                            <div class="product-card-rating">
+                                {% for i in "12345" %}
+                                {% if forloop.counter <= rp.avg_rating %}
+                                    <i class="fa-solid fa-star"></i>
+                                {% else %}
+                                    <i class="fa-regular fa-star"></i>
+                                {% endif %}
+                                {% endfor %}
+                                {% if rp.review_count > 0 %}
+                                <span class="product-card-review-count">({{ rp.review_count }})</span>
+                                {% endif %}
+                            </div>
+                            <div class="price-row">
+                                <span class="price">₹{{ rp.display_price|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                    </a>
+                    <div style="margin-top: auto; padding: 0 15px 15px;">
+                        <button class="add-to-cart wishlist-card-btn" data-product-id="{{ rp.id }}"
+                            style="background-color: {% if rp.id in wishlist_product_ids %}#1a1a18{% else %}#fff{% endif %}; color: {% if rp.id in wishlist_product_ids %}#fff{% else %}#1a1a18{% endif %}; border: 1px solid #1a1a18; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 8px; font-size: 11px; min-height: 40px; margin-top: 10px;">
+                            <i class="{% if rp.id in wishlist_product_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+                            <span class="wishlist-btn-text" style="font-weight: 600; letter-spacing: 0.5px;">
+                                {% if rp.id in wishlist_product_ids %}WISHLISTED{% else %}ADD TO WISHLIST{% endif %}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
 
     <!-- Lightbox Modal -->
     <div class="review-lightbox" id="review-lightbox">
@@ -397,7 +465,14 @@
             const label = document.createElement('label');
             label.htmlFor = `size-${s.id}`;
             label.className = `size-box ${s.stock === 0 ? 'out-of-stock' : ''}`;
-            label.innerHTML = `${s.name} <span class="stock-count">${s.stock} left</span>`;
+            
+            let stockHtml = '';
+            if (s.stock > 0 && s.stock <= 5) {
+                stockHtml = `<span class="stock-count low-stock">Only ${s.stock} left!</span>`;
+            } else if (s.stock > 0) {
+                stockHtml = `<span class="stock-count">${s.stock} left</span>`;
+            }
+            label.innerHTML = `${s.name} ${stockHtml}`;
 
             sizeContainer.appendChild(input);
             sizeContainer.appendChild(label);

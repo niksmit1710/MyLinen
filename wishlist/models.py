@@ -9,6 +9,7 @@ class Wishlist(models.Model):
 
     class Meta:
         unique_together = ('user', 'variant')
+        ordering = ['-added_at']
 
     def __str__(self):
         return f"{self.user.username}'s wishlist: {self.variant.product.name} ({self.variant.color.name})"

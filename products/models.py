@@ -48,6 +48,7 @@ class Product(models.Model):
         related_name='products'
     )
     image = models.ImageField(upload_to='products/', null=True, blank=True, help_text="[DEPRECATED] Use Variant images instead.")
+    is_featured = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

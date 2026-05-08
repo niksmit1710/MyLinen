@@ -70,6 +70,9 @@
                                 <a href="{% if item.variant %}{% url 'product_detail' item.variant.product.id %}{% else %}#{% endif %}" class="product-link">
                                     {{ item.product_name_at_purchase }}
                                 </a>
+                                {% if item.is_returned %}
+                                <span class="returned-status-badge">Returned</span>
+                                {% endif %}
                             </h3>
                             <p class="meta">Color: {{ item.color_at_purchase }} | Size: {{ item.size_at_purchase }} | Qty: {{ item.quantity }}</p>
                             <p class="item-price">Rs. {{ item.price|floatformat:2 }}</p>

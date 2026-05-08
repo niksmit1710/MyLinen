@@ -8,17 +8,32 @@ from .models import Product, ProductVariant, Category, Review, Color, ReviewImag
 
 
 def homepage(request):
-    featured_products = Product.objects.annotate(
+    featured_products = Product.objects.filter(is_featured=True).annotate(
         avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
         review_count=Count('reviews')
-    ).all()[:8]
+    ).order_by('-id')[:8]
+    
+    # Fallback to newest products if no products are marked as featured
+    if not featured_products.exists():
+        featured_products = Product.objects.annotate(
+            avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
+            review_count=Count('reviews')
+        ).order_by('-id')[:8]
     wishlist_product_ids = set()
     if request.user.is_authenticated:
         from wishlist.models import Wishlist
         wishlist_product_ids = set(Wishlist.objects.filter(user=request.user).values_list('variant__product_id', flat=True))
 
+    also_like_products = Product.objects.exclude(
+        id__in=[p.id for p in featured_products]
+    ).annotate(
+        avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
+        review_count=Count('reviews')
+    ).order_by('?')[:12]
+
     return render(request, 'index.html', {
-        'featured_products': featured_products,
+        'trending_products': featured_products,
+        'also_like_products': also_like_products,
         'wishlist_product_ids': wishlist_product_ids,
     })
 
@@ -33,7 +48,14 @@ def product_list(request):
         avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
         review_count=Count('reviews')
     ).all()
-    categories = Category.objects.filter(parent=None).prefetch_related('subcategories')
+    # Annotate categories with product counts
+    categories = Category.objects.filter(parent=None).annotate(
+        product_count=Count('product', distinct=True) + Count('subcategories__product', distinct=True)
+    ).prefetch_related(
+        Prefetch('subcategories', queryset=Category.objects.annotate(
+            product_count=Count('product', distinct=True)
+        ))
+    )
 
     # --- Search ---
     query = request.GET.get('q', '').strip()
@@ -60,21 +82,25 @@ def product_list(request):
         ).distinct()
 
     # --- Category filter ---
-    category_val = request.GET.get('category', '')
-    selected_category_obj = None
-    if category_val:
-        try:
-            if category_val.isdigit():
-                selected_category_obj = Category.objects.get(id=int(category_val))
+    category_vals = request.GET.getlist('category')
+    selected_categories_objs = []
+    if category_vals:
+        all_ids = set()
+        for val in category_vals:
+            if not val: continue
+            if val.isdigit():
+                matching_cats = Category.objects.filter(id=int(val))
             else:
-                selected_category_obj = Category.objects.get(name__iexact=category_val)
+                matching_cats = Category.objects.filter(name__iexact=val)
             
-            # include subcategories
-            sub_ids = list(selected_category_obj.subcategories.values_list('id', flat=True))
-            ids = [selected_category_obj.id] + sub_ids
-            products = products.filter(category_id__in=ids)
-        except (Category.DoesNotExist, ValueError):
-            pass
+            for cat_obj in matching_cats:
+                selected_categories_objs.append(cat_obj)
+                all_ids.add(cat_obj.id)
+                # include subcategories
+                all_ids.update(cat_obj.subcategories.values_list('id', flat=True))
+        
+        if all_ids:
+            products = products.filter(category_id__in=all_ids).distinct()
 
     # --- Price range filter ---
     min_price = request.GET.get('min_price', '').strip()
@@ -123,7 +149,7 @@ def product_list(request):
     elif sort == 'name_asc':
         products = products.order_by('name')
     else:
-        products = products.order_by('id')
+        products = products.order_by('-id')
 
     wishlist_product_ids = set()
     if request.user.is_authenticated:
@@ -131,32 +157,36 @@ def product_list(request):
         wishlist_product_ids = set(Wishlist.objects.filter(user=request.user).values_list('variant__product_id', flat=True))
 
     # Determine the parent category for the sidebar filter display
+    # (Using the first selected category to find the parent in our annotated list)
     filter_parent_category = None
-    if selected_category_obj:
-        if selected_category_obj.parent is None:
-            # A parent category was selected directly
-            filter_parent_category = selected_category_obj
-        else:
-            # A subcategory was selected — use its parent
-            filter_parent_category = selected_category_obj.parent
+    if selected_categories_objs:
+        first_selected = selected_categories_objs[0]
+        target_id = first_selected.parent_id if first_selected.parent_id else first_selected.id
+        
+        for cat in categories:
+            if cat.id == target_id:
+                filter_parent_category = cat
+                break
 
     # Available colors for the filter sidebar
     all_colors = Color.objects.all()
 
     # Calculate filter count (excluding sort)
     filter_count = 0
-    if category_val: filter_count += 1
+    if category_vals: filter_count += 1
     if min_price or max_price: filter_count += 1
     if selected_color_ids: filter_count += 1
     if discount_val: filter_count += 1
+
+    selected_category_names = ", ".join([c.name for c in selected_categories_objs])
 
     return render(request, 'product_list.html', {
         'products': products,
         'categories': categories,
         'query': query,
-        'selected_category': category_val,
-        'selected_category_name': selected_category_obj.name if selected_category_obj else '',
-        'selected_category_obj': selected_category_obj,
+        'selected_categories': category_vals,
+        'selected_category_name': selected_category_names,
+        'selected_categories_objs': selected_categories_objs,
         'filter_parent_category': filter_parent_category,
         'min_price': min_price,
         'max_price': max_price,
@@ -250,6 +280,14 @@ def product_detail(request, id):
             ]
         })
 
+    # Related products: same category, excluding current product
+    related_products = Product.objects.filter(
+        category=product.category
+    ).exclude(id=product.id).annotate(
+        avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
+        review_count=Count('reviews')
+    ).order_by('?')[:12]
+
     return render(request, 'product_detail.html', {
         'product': product,
         'variants': variants,
@@ -263,6 +301,7 @@ def product_detail(request, id):
         'user_review': user_review,
         'user_review_images': user_review_images,
         'is_verified_buyer': is_verified_buyer,
+        'related_products': related_products,
     })
 
 
