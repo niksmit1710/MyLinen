@@ -28,8 +28,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1',
     'localhost',
-    'mylinen.onrender.com']
-
+    'mylinen.onrender.com',
+    '.onrender.com']
 
 # Application definition
 
@@ -167,6 +167,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com",
 ]
 
 

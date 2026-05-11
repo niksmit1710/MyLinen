@@ -1,15 +1,26 @@
+import os
+import django
+
+# ✅ Set settings module FIRST
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mylinen.settings')
+
+# ✅ Initialize Django
+django.setup()
+
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-username = "admin"
-password = "admin123"
+try:
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser(
+            username='admin',
+            email='admin@gmail.com',
+            password='admin123'
+        )
+        print("Superuser created")
+    else:
+        print("Superuser already exists")
 
-user, created = User.objects.get_or_create(username=username)
-
-user.set_password(password)   # IMPORTANT (hash password)
-user.is_staff = True
-user.is_superuser = True
-user.save()
-
-print("Superuser ready")
+except Exception as e:
+    print("Error:", e)
