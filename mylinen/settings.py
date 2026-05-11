@@ -148,8 +148,11 @@ CLOUDINARY_STORAGE = {
     'API_KEY': '671416973318251',
     'API_SECRET': '4YJo2GiCzi4gr086_07nvFa4o9s',
 }
+import os
 
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+if os.environ.get("CLOUDINARY_URL"):
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+print("STORAGE:", DEFAULT_FILE_STORAGE)
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
