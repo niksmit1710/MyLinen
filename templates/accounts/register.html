@@ -215,10 +215,15 @@
             <span class="divider-text">or</span>
         </div>
 
+        {% get_providers as socialaccount_providers %}
+        {% for provider in socialaccount_providers %}
+        {% if provider.id == "google" %}
         <a href="{% provider_login_url 'google' %}" class="social-btn">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
             Continue with Google
         </a>
+        {% endif %}
+        {% endfor %}
 
         <p class="auth-footer">
             Already have an account?
