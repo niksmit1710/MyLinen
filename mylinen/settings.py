@@ -53,6 +53,9 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
+    
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -134,7 +137,19 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+    
+    
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'dznysydhm',
+    'API_KEY': '671416973318251',
+    'API_SECRET': '4YJo2GiCzi4gr086_07nvFa4o9s',
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
