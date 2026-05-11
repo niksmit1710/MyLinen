@@ -441,7 +441,7 @@ body {
     width: 100%;
     height: 100vh;
     /* Set to viewport height */
-    background-image: url('../images/hero2.png');
+    background-image: url('images/hero2.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -4449,7 +4449,7 @@ input:focus {
 
 /* Crafting Process */
 .crafting-process {
-    background-image: linear-gradient(rgba(26, 26, 24, 0.05), rgba(26, 26, 24, 0.05)), url('../images/about-luxury.png');
+    background-image: linear-gradient(rgba(26, 26, 24, 0.05), rgba(26, 26, 24, 0.05)), url('images/about-luxury.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
