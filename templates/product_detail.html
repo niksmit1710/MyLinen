@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load cloudinary_tags %}
 
 {% block content %}
 <main class="pdp-container">
@@ -9,10 +10,10 @@
                 {% for var in variants %}
                 <div class="variant-thumbnails" id="thumbs-variant-{{ var.id }}" style="{% if var != default_variant %}display:none;{% endif %}">
                     {% if var.image %}
-                    <img src="{{ var.image.url }}" class="thumb active" onclick="changeImage(this.src)" loading="lazy">
+                    <img src="{% cloudinary_thumb_url var.image %}" class="thumb active" onclick="changeImage('{% cloudinary_hero_url var.image %}')" loading="lazy" width="80" height="100">
                     {% endif %}
                     {% for img in var.images.all %}
-                    <img src="{{ img.image.url }}" class="thumb {% if not var.image and forloop.first %}active{% endif %}" onclick="changeImage(this.src)" loading="lazy">
+                    <img src="{% cloudinary_thumb_url img.image %}" class="thumb {% if not var.image and forloop.first %}active{% endif %}" onclick="changeImage('{% cloudinary_hero_url img.image %}')" loading="lazy" width="80" height="100">
                     {% endfor %}
                 </div>
                 {% endfor %}
@@ -21,10 +22,10 @@
                 {% if not default_variant.images.all and not default_variant.image %}
                     <div class="variant-thumbnails product-legacy-images">
                         {% if product.image %}
-                        <img src="{{ product.image.url }}" class="thumb" onclick="changeImage(this.src)" loading="lazy">
+                        <img src="{% cloudinary_thumb_url product.image %}" class="thumb" onclick="changeImage('{% cloudinary_hero_url product.image %}')" loading="lazy" width="80" height="100">
                         {% endif %}
                         {% for img in product.deprecated_images.all %}
-                        <img src="{{ img.image.url }}" class="thumb" onclick="changeImage(this.src)" loading="lazy">
+                        <img src="{% cloudinary_thumb_url img.image %}" class="thumb" onclick="changeImage('{% cloudinary_hero_url img.image %}')" loading="lazy" width="80" height="100">
                         {% endfor %}
                     </div>
                 {% endif %}
@@ -32,9 +33,9 @@
 
             <div class="main-image-wrapper">
                 {% if product.primary_image %}
-                <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" id="main-product-image">
+                <img src="{% cloudinary_hero_url product.primary_image %}" alt="{{ product.name }}" id="main-product-image" loading="eager" width="900" height="1080">
                 {% else %}
-                <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" id="main-product-image">
+                <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" id="main-product-image" loading="eager">
                 {% endif %}
             </div>
         </div>

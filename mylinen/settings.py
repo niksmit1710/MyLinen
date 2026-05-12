@@ -90,6 +90,7 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -97,7 +98,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = "mylinen.urls"
@@ -164,6 +164,37 @@ if os.environ.get("CLOUDINARY_URL"):
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+else:
+    STORAGES = {
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+
+# Cloudinary auto-transformations for optimized delivery
+CLOUDINARY_AUTO_TRANSFORM = {
+    'quality': 'auto',
+    'fetch_format': 'auto',
+}
+
+# Caching
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'mylinen-cache',
+        'TIMEOUT': 300,  # 5 minutes
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+# Cache middleware settings
+CACHE_MIDDLEWARE_SECONDS = 300
+CACHE_MIDDLEWARE_KEY_PREFIX = 'mylinen'
+
+# WhiteNoise static file caching
+WHITENOISE_MAX_AGE = 31536000  # 1 year for versioned static files
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 

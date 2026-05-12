@@ -8,28 +8,42 @@ from .models import Product, ProductVariant, Category, Review, Color, ReviewImag
 
 
 def homepage(request):
-    featured_products = Product.objects.filter(is_featured=True).annotate(
+    featured_qs = Product.objects.prefetch_related(
+        Prefetch('variants', queryset=ProductVariant.objects.select_related('color').prefetch_related('images')),
+    ).filter(is_featured=True).annotate(
         avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
         review_count=Count('reviews')
     ).order_by('-id')[:8]
-    
+
+    featured_products = list(featured_qs)
+
     # Fallback to newest products if no products are marked as featured
-    if not featured_products.exists():
-        featured_products = Product.objects.annotate(
-            avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
-            review_count=Count('reviews')
-        ).order_by('-id')[:8]
+    if not featured_products:
+        featured_products = list(
+            Product.objects.prefetch_related(
+                Prefetch('variants', queryset=ProductVariant.objects.select_related('color').prefetch_related('images')),
+            ).annotate(
+                avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
+                review_count=Count('reviews')
+            ).order_by('-id')[:8]
+        )
+
     wishlist_product_ids = set()
     if request.user.is_authenticated:
         from wishlist.models import Wishlist
-        wishlist_product_ids = set(Wishlist.objects.filter(user=request.user).values_list('variant__product_id', flat=True))
+        wishlist_product_ids = set(
+            Wishlist.objects.filter(user=request.user).values_list('variant__product_id', flat=True)
+        )
 
-    also_like_products = Product.objects.exclude(
-        id__in=[p.id for p in featured_products]
-    ).annotate(
-        avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
-        review_count=Count('reviews')
-    ).order_by('?')[:12]
+    featured_ids = [p.id for p in featured_products]
+    also_like_products = list(
+        Product.objects.exclude(id__in=featured_ids).prefetch_related(
+            Prefetch('variants', queryset=ProductVariant.objects.select_related('color').prefetch_related('images')),
+        ).annotate(
+            avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
+            review_count=Count('reviews')
+        ).order_by('?')[:12]
+    )
 
     return render(request, 'index.html', {
         'trending_products': featured_products,
@@ -40,14 +54,14 @@ def homepage(request):
 
 def product_list(request):
     products = Product.objects.select_related('category').prefetch_related(
-        'variants', 
-        'variants__color',
-        'variants__images',
-        'deprecated_images'
+        Prefetch(
+            'variants',
+            queryset=ProductVariant.objects.select_related('color').prefetch_related('images').filter(is_active=True)
+        ),
     ).annotate(
         avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
         review_count=Count('reviews')
-    ).all()
+    )
     # Annotate categories with product counts
     categories = Category.objects.filter(parent=None).annotate(
         product_count=Count('product', distinct=True) + Count('subcategories__product', distinct=True)
@@ -281,12 +295,16 @@ def product_detail(request, id):
         })
 
     # Related products: same category, excluding current product
-    related_products = Product.objects.filter(
-        category=product.category
-    ).exclude(id=product.id).annotate(
-        avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
-        review_count=Count('reviews')
-    ).order_by('?')[:12]
+    related_products = list(
+        Product.objects.filter(
+            category=product.category
+        ).exclude(id=product.id).prefetch_related(
+            Prefetch('variants', queryset=ProductVariant.objects.select_related('color').prefetch_related('images').filter(is_active=True)),
+        ).annotate(
+            avg_rating=Round(Coalesce(Avg('reviews__rating'), 0.0), 1),
+            review_count=Count('reviews')
+        ).order_by('?')[:12]
+    )
 
     return render(request, 'product_detail.html', {
         'product': product,
