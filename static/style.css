@@ -1801,10 +1801,10 @@ body {
 /* Image Section */
 .pdp-gallery {
     display: flex;
-    gap: 25px;
+    flex-direction: column; /* Stack vertically: image top, thumbnails bottom */
+    gap: 20px;
     width: 100%;
-    /* Changed from 80% to 100% */
-    max-height: 80vh;
+    max-height: none; /* Removed fixed height to allow vertical flow */
     position: sticky;
     top: 20px;
 }
@@ -1813,18 +1813,24 @@ body {
     .pdp-gallery {
         position: static;
         max-height: none;
-        flex-direction: column-reverse;
+        flex-direction: column; /* Ensure main image stays on top, thumbnails below */
         gap: 15px;
     }
 }
 
 .thumbnails-list {
     display: flex;
-    flex-direction: column;
-    /* Vertical stack */
+    flex-direction: row; /* Horizontal stack */
+    order: 2; /* Move thumbnails below the main image */
+    gap: 12px;
+    width: 100%;
+    overflow-x: auto;
+    padding: 5px 0;
+}
+
+.variant-thumbnails {
+    display: flex;
     gap: 10px;
-    width: 80px;
-    /* Fixed width for the thumb column */
 }
 
 .thumb {
@@ -1847,15 +1853,16 @@ body {
 
 .main-image-wrapper {
     flex-grow: 1;
-    /* Main image takes up remaining space */
+    order: 1; /* Ensure main image is on top */
     overflow: hidden;
     background-color: #fff;
 }
 
 .main-image-wrapper img {
     width: 100%;
-    height: 80vh;
-    object-fit: cover;
+    height: auto;
+    max-height: 80vh;
+    object-fit: contain;
     display: block;
 }
 
@@ -5441,6 +5448,211 @@ input:focus {
 }
 
 
+
+/* ===== Product Listing Page (PLP) Styles ===== */
+.plp-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.plp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.breadcrumbs {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    width: 100%;
+}
+
+.page-title {
+    font-family: 'Cormorant', serif;
+    font-size: 32px;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.mobile-filter-trigger {
+    display: none;
+    padding: 10px 20px;
+    background: #1a1a18;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-badge {
+    background: #c8a96e;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+}
+
+.plp-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 40px;
+}
+
+.filter-sidebar {
+    position: sticky;
+    top: 100px;
+    height: fit-content;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #1a1a18;
+}
+
+.filter-header h3 {
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+}
+
+.mobile-filter-close {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.filter-group {
+    margin-bottom: 30px;
+}
+
+.filter-group h4 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    color: #1a1a18;
+}
+
+.filter-options ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.filter-options li {
+    margin-bottom: 10px;
+}
+
+.filter-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e0d8cf;
+}
+
+.apply-filters-btn {
+    width: 100%;
+    padding: 15px;
+    background: #1a1a18;
+    color: #fff;
+    border: none;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.apply-filters-btn:hover {
+    background: #333;
+}
+
+.clear-all-btn {
+    text-align: center;
+    font-size: 12px;
+    color: #888;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.clear-all-btn.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    text-decoration: none;
+}
+
+.grid-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.filter-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: none;
+}
+
+.filter-overlay.active {
+    display: block;
+}
+
+@media (max-width: 1024px) {
+    .plp-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .mobile-filter-trigger {
+        display: flex;
+    }
+
+    .filter-sidebar {
+        position: fixed;
+        top: 0;
+        left: -320px;
+        width: 300px;
+        height: 100%;
+        background: #fff;
+        z-index: 2001;
+        padding: 30px 20px;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+    }
+
+    .filter-sidebar.active {
+        left: 0;
+    }
+
+    .mobile-filter-close {
+        display: block;
+    }
+}
 
 /* ===== Product Filter Sidebar Enhancements ===== */
 

@@ -43,10 +43,11 @@ INSTALLED_APPS = [
     "accounts",
     "products",
     "cart",
-    "orders",
+    "orders.apps.OrdersConfig",
     "payments",
     "shipping",
-    "wishlist",
+    'wishlist',
+    'notifications.apps.NotificationsConfig',
     # Social Auth
     "django.contrib.sites",
     "allauth",
@@ -215,5 +216,21 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 RAZORPAY_KEY_ID = 'rzp_test_SgnlUShPZzZePw'
 RAZORPAY_KEY_SECRET = 'RqWMAqYqRBHRhPpcKQPxzz5b'
+# Email Configuration
 
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'rashmit1806@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'ludm iqeo dygo qhhv')
+
+DEFAULT_FROM_EMAIL = 'MyLinen <noreply@mylinen.com>'
+
+SITE_URL = 'https://mylinen.onrender.com'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

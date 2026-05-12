@@ -13,6 +13,7 @@ STATUS_CHOICES = [
     ('confirmed', 'Confirmed'),
     ('shipped', 'Shipped'),
     ('delivered', 'Delivered'),
+    ('cancelled', 'Cancelled'),
 ]
 PAYMENT_METHODS = [
     ('cod', 'Cash on Delivery'),

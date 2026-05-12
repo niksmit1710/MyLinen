@@ -1,0 +1,26 @@
+Dear {{ customer_name }},
+
+{% if event_type == 'placed' %}Your order #{{ order.id }} has been placed successfully!
+{% elif event_type == 'confirmed' %}Your order #{{ order.id }} has been confirmed.
+{% elif event_type == 'shipped' %}Your order #{{ order.id }} has been shipped and is on its way.
+{% elif event_type == 'delivered' %}Your order #{{ order.id }} has been delivered.
+{% elif event_type == 'cancelled' %}Your order #{{ order.id }} has been cancelled.
+{% elif event_type == 'return_approved' %}Your return request for order #{{ order.id }} has been approved.
+{% elif event_type == 'return_rejected' %}Your return request for order #{{ order.id }} was not approved.
+{% elif event_type == 'exchange_approved' %}Your exchange request for order #{{ order.id }} has been approved.
+{% elif event_type == 'exchange_rejected' %}Your exchange request for order #{{ order.id }} was not approved.
+{% elif event_type == 'pickup_scheduled' %}Pickup for your order #{{ order.id }} has been scheduled.
+{% elif event_type == 'pickup_completed' %}Pickup has been completed for order #{{ order.id }}.
+{% endif %}
+
+ORDER SUMMARY:
+{% for item in order.items.all %}
+- {{ item.product_name_at_purchase }} ({{ item.color_at_purchase }}, {{ item.size_at_purchase }}) x {{ item.quantity }}: Rs. {{ item.price_at_purchase }}
+{% endfor %}
+
+TOTAL AMOUNT: Rs. {{ order.total_amount }}
+
+You can view your order details here: {{ site_url }}/orders/{{ order.id }}/
+
+Thank you for shopping with MyLinen!
+{% if year %}&copy; {{ year }} MyLinen{% endif %}

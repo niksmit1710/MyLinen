@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+    <style>
+        body { font-family: 'Inter', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #fcf9f3; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff; padding: 40px; border: 1px solid #e0d8cf; }
+        .header { text-align: center; border-bottom: 2px solid #1a1a18; padding-bottom: 20px; margin-bottom: 30px; }
+        .logo { font-family: 'Georgia', serif; font-size: 24px; letter-spacing: 5px; color: #1a1a18; text-decoration: none; font-weight: bold; }
+        .logo-italic { font-style: italic; }
+        .content { margin-bottom: 30px; }
+        .order-box { background: #fdfaf8; border: 1px solid #f0ebe3; padding: 20px; border-radius: 4px; margin-top: 20px; }
+        .order-title { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+        .total-row { border-top: 2px solid #1a1a18; margin-top: 15px; padding-top: 10px; font-weight: bold; display: flex; justify-content: space-between; }
+        .footer { text-align: center; font-size: 12px; color: #888; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+        .btn { display: inline-block; padding: 12px 25px; background-color: #1a1a18; color: #fff; text-decoration: none; border-radius: 4px; font-weight: 600; margin-top: 20px; }
+        .status-msg { font-size: 18px; font-weight: 600; color: #1a1a18; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo"><span class="logo-italic">M</span>YLINEN</div>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ customer_name }},</p>
+            
+            <div class="status-msg">
+                {% if event_type == 'placed' %}Your order has been placed!
+                {% elif event_type == 'confirmed' %}Your order has been confirmed.
+                {% elif event_type == 'shipped' %}Your order is on its way!
+                {% elif event_type == 'delivered' %}Your order has been delivered.
+                {% elif event_type == 'cancelled' %}Your order has been cancelled.
+                {% elif event_type == 'return_approved' %}Your return request has been approved.
+                {% elif event_type == 'return_rejected' %}We've updated your return request.
+                {% elif event_type == 'exchange_approved' %}Your exchange request has been approved.
+                {% elif event_type == 'exchange_rejected' %}We've updated your exchange request.
+                {% elif event_type == 'pickup_scheduled' %}Pickup for your order has been scheduled.
+                {% elif event_type == 'pickup_completed' %}Pickup has been completed.
+                {% endif %}
+            </div>
+
+            <p>
+                {% if event_type == 'placed' %}Thank you for shopping with MyLinen. We've received your order and are getting it ready.
+                {% elif event_type == 'confirmed' %}Great news! We've confirmed your order and it's now being processed for shipping.
+                {% elif event_type == 'shipped' %}Your order has been shipped and is currently in transit. You can track your package using the link below.
+                {% elif event_type == 'delivered' %}We hope you love your new MyLinen products! Your order was marked as delivered today.
+                {% elif event_type == 'cancelled' %}As requested, your order has been cancelled. If any payment was made, it will be refunded shortly.
+                {% elif event_type == 'return_approved' %}Your return request for order #{{ order.id }} has been approved. Please keep the items ready for pickup.
+                {% elif event_type == 'return_rejected' %}After reviewing your return request, we're unable to process it at this time. Please see the admin notes in your account for details.
+                {% elif event_type == 'exchange_approved' %}Your exchange request has been approved. We'll send the new items once the pickup is completed.
+                {% elif event_type == 'pickup_scheduled' %}A pickup agent will visit your address in the next 24-48 hours.
+                {% elif event_type == 'pickup_completed' %}The items have been successfully picked up. Your request is now being processed.
+                {% endif %}
+            </p>
+
+            <div class="order-box">
+                <div class="order-title">ORDER SUMMARY #{{ order.id }}</div>
+                {% for item in order.items.all %}
+                <div class="item-row">
+                    <span>{{ item.product_name_at_purchase }} ({{ item.color_at_purchase }}, {{ item.size_at_purchase }}) x {{ item.quantity }}</span>
+                    <span>Rs. {{ item.price_at_purchase }}</span>
+                </div>
+                {% endfor %}
+                
+                <div class="total-row">
+                    <span>Total Amount</span>
+                    <span>Rs. {{ order.total_amount }}</span>
+                </div>
+            </div>
+
+            <center>
+                <a href="{{ site_url }}/orders/{{ order.id }}/" class="btn">VIEW ORDER DETAILS</a>
+            </center>
+        </div>
+
+        <div class="footer">
+            &copy; {{ year }} MyLinen. All rights reserved.<br>
+            Premium Handcrafted Linen Collection.
+        </div>
+    </div>
+</body>
+</html>
