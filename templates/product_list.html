@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load cloudinary_tags %}
 
 {% block content %}
 <main class="plp-container">
@@ -183,9 +182,9 @@
                     <a href="{% url 'product_detail' product.id %}" style="text-decoration: none; color: inherit;">
                         <div class="product-image">
                             {% if product.primary_image %}
-                            <img src="{% cloudinary_card_url product.primary_image %}" alt="{{ product.name }}" loading="lazy" width="500" height="600">
+                            <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" loading="lazy">
                             {% else %}
-                            <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy" width="500" height="600">
+                            <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy">
                             {% endif %}
                             {% if product.discount_percentage > 0 %}
                             <span class="discount-badge">{{ product.discount_percentage }}% OFF</span>

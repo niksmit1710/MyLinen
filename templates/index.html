@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load cloudinary_tags %}
 
 {% block content %}
 <section class="hero-section">
@@ -134,9 +133,9 @@
             <a href="{% url 'product_detail' product.id %}" style="text-decoration: none; color: inherit;">
                 <div class="product-image">
                     {% if product.primary_image %}
-                    <img src="{% cloudinary_card_url product.primary_image %}" alt="{{ product.name }}" loading="lazy" width="500" height="600">
+                    <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" loading="lazy">
                     {% else %}
-                    <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy" width="500" height="600">
+                    <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy">
                     {% endif %}
                     {% if product.discount_percentage > 0 %}
                     <span class="discount-badge">{{ product.discount_percentage }}% OFF</span>
@@ -201,9 +200,9 @@
                 <a href="{% url 'product_detail' product.id %}" style="text-decoration: none; color: inherit;">
                     <div class="product-image">
                         {% if product.primary_image %}
-                        <img src="{% cloudinary_card_url product.primary_image %}" alt="{{ product.name }}" loading="lazy" width="500" height="600">
+                        <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" loading="lazy">
                         {% else %}
-                        <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy" width="500" height="600">
+                        <img src="{% static 'images/placeholder.png' %}" alt="{{ product.name }}" loading="lazy">
                         {% endif %}
                     </div>
                     <div class="product-info">
@@ -296,6 +295,7 @@
             console.log('Button clicked:', submitBtn.innerText, 'data-added:', submitBtn.getAttribute('data-added'));
 
             if (submitBtn.getAttribute('data-added') === 'true') {
+                console.log('Redirecting to cart...');
                 e.preventDefault();
                 window.location.href = "{% url 'cart_detail' %}";
                 return;
@@ -316,6 +316,7 @@
                     if (data.status === 'success') {
                         submitBtn.innerText = 'GO TO BAG';
                         submitBtn.setAttribute('data-added', 'true');
+                        console.log('Button updated to GO TO BAG');
                         submitBtn.style.backgroundColor = '#1a1a18';
                         submitBtn.style.color = '#fff';
 
