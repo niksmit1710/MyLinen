@@ -1830,12 +1830,17 @@ body {
 
 .variant-thumbnails {
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     gap: 10px;
+    width: max-content;
+    max-width: 100%;
 }
 
 .thumb {
     width: 80px;
     height: 100px;
+    flex: 0 0 auto;
     object-fit: cover;
     cursor: pointer;
     border: 1px solid transparent;

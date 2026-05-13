@@ -434,7 +434,7 @@
         document.querySelectorAll('.variant-thumbnails').forEach(el => el.style.display = 'none');
         const activeThumbs = document.getElementById(`thumbs-variant-${variant.id}`);
         if (activeThumbs) {
-            activeThumbs.style.display = 'block';
+            activeThumbs.style.display = 'flex';
             // Set main image to the first thumb of this variant
             const firstThumb = activeThumbs.querySelector('.thumb');
             if (firstThumb) {
