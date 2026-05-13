@@ -1,5 +1,6 @@
 from django.core import mail
 from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from accounts.models import User
 from notifications.emails import send_order_email
@@ -70,3 +71,47 @@ class TransactionalEmailTests(TestCase):
         self.assertEqual(len(callbacks), 1)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['second@example.com'])
+
+
+class EmailDiagnosticsViewTests(TestCase):
+    def setUp(self):
+        self.staff_user = User.objects.create_user(
+            username='staff',
+            email='staff@example.com',
+            password='testpass123',
+            user_type='customer',
+            is_staff=True,
+        )
+        self.customer = User.objects.create_user(
+            username='customer',
+            email='customer@example.com',
+            password='testpass123',
+            user_type='customer',
+        )
+
+    def test_email_diagnostics_requires_staff(self):
+        response = self.client.get(reverse('email_diagnostics'))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.force_login(self.customer)
+        response = self.client.get(reverse('email_diagnostics'))
+        self.assertEqual(response.status_code, 302)
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        DEFAULT_FROM_EMAIL='MyLinen <orders@example.com>',
+        EMAIL_HOST='smtp.gmail.com',
+        EMAIL_PORT=587,
+        EMAIL_USE_TLS=True,
+        EMAIL_USE_SSL=False,
+        EMAIL_HOST_USER='orders@example.com',
+        EMAIL_HOST_PASSWORD='secret',
+    )
+    def test_staff_can_send_diagnostic_email(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(reverse('email_diagnostics'), {'to': 'test@example.com'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['test@example.com'])

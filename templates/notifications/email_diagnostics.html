@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main style="max-width: 760px; margin: 40px auto; padding: 0 20px;">
+    <h1 style="font-size: 28px; margin-bottom: 16px;">Email Diagnostics</h1>
+
+    {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+                <p style="padding: 12px 14px; border: 1px solid #ddd; background: #fff;">
+                    {{ message }}
+                </p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <section style="background: #fff; border: 1px solid #e5e0d8; padding: 20px; margin-bottom: 24px;">
+        <h2 style="font-size: 18px; margin-bottom: 12px;">Current Configuration</h2>
+        <dl style="display: grid; grid-template-columns: 220px 1fr; gap: 10px; font-size: 14px;">
+            <dt>Backend</dt><dd>{{ email_status.backend }}</dd>
+            <dt>Host</dt><dd>{{ email_status.host }}</dd>
+            <dt>Port</dt><dd>{{ email_status.port }}</dd>
+            <dt>TLS</dt><dd>{{ email_status.use_tls }}</dd>
+            <dt>SSL</dt><dd>{{ email_status.use_ssl }}</dd>
+            <dt>Host User Set</dt><dd>{{ email_status.host_user_set }}</dd>
+            <dt>Password Set</dt><dd>{{ email_status.host_password_set }}</dd>
+            <dt>From Email</dt><dd>{{ email_status.default_from_email }}</dd>
+            <dt>Email Disabled</dt><dd>{{ email_status.dummy_backend }}</dd>
+        </dl>
+    </section>
+
+    <section style="background: #fff; border: 1px solid #e5e0d8; padding: 20px;">
+        <h2 style="font-size: 18px; margin-bottom: 12px;">Send Test Email</h2>
+        <form method="post">
+            {% csrf_token %}
+            <label for="to" style="display: block; font-weight: 600; margin-bottom: 8px;">Recipient</label>
+            <input
+                id="to"
+                name="to"
+                type="email"
+                value="{{ recipient }}"
+                required
+                style="width: 100%; padding: 10px; border: 1px solid #ccc; margin-bottom: 14px;"
+            >
+            <button type="submit" style="background: #1a1a18; color: #fff; border: 0; padding: 12px 18px; cursor: pointer;">
+                Send Test Email
+            </button>
+        </form>
+    </section>
+</main>
+{% endblock %}
