@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError
 from django.utils.crypto import constant_time_compare, salted_hmac
 from django.utils.module_loading import import_string
 from django.shortcuts import redirect, render
@@ -180,11 +181,20 @@ def profile_view(request):
         phone_number = request.POST.get('phone_number', '').strip()
         
         user = request.user
+        if phone_number and User.objects.filter(phone_number=phone_number).exclude(id=user.id).exists():
+            messages.error(request, 'That phone number is already used by another account.')
+            return redirect('profile')
+
         user.first_name = first_name
         user.last_name = last_name
         user.email = email
-        user.phone_number = phone_number
-        user.save()
+        user.phone_number = phone_number or None
+        try:
+            user.save()
+        except IntegrityError:
+            messages.error(request, 'That phone number is already used by another account.')
+            return redirect('profile')
+
         messages.success(request, 'Profile updated successfully!')
         return redirect('profile')
 

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import warnings
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -43,10 +44,13 @@ DEBUG = env_bool("DEBUG", False)
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")
 if not SECRET_KEY:
-    if DEBUG:
-        SECRET_KEY = get_random_secret_key()
-    else:
-        raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG is False")
+    SECRET_KEY = get_random_secret_key()
+    if not DEBUG:
+        warnings.warn(
+            "SECRET_KEY is not set. A temporary key was generated; set SECRET_KEY "
+            "in production so sessions and password reset tokens remain stable.",
+            RuntimeWarning,
+        )
 
 ALLOWED_HOSTS = ['127.0.0.1',
     'localhost',
@@ -178,9 +182,10 @@ if all(env(name) for name in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CL
         'API_SECRET': env("CLOUDINARY_API_SECRET"),
     }
 elif not DEBUG and not env("CLOUDINARY_URL"):
-    raise ImproperlyConfigured(
+    warnings.warn(
         "Cloudinary credentials must be set with CLOUDINARY_URL or "
-        "CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET"
+        "CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET for persistent media storage.",
+        RuntimeWarning,
     )
 import os
 
@@ -243,23 +248,27 @@ LOGIN_REDIRECT_URL = '/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", required=not DEBUG)
-RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", required=not DEBUG)
+RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", "")
+RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", "")
 # Email Configuration
 
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-if not DEBUG and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
-    raise ImproperlyConfigured("EMAIL_HOST_USER and EMAIL_HOST_PASSWORD must be set when DEBUG is False")
+
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
+    warnings.warn(
+        "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD are not set. SMTP email delivery will be disabled.",
+        RuntimeWarning,
+    )
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'MyLinen <noreply@mylinen.com>')
 

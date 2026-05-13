@@ -2,30 +2,20 @@
 # Exit on error
 set -o errexit
 
-missing_env=()
-
-check_env() {
-    if [ -z "${!1}" ]; then
-        missing_env+=("$1")
-    fi
-}
-
-check_env "SECRET_KEY"
-check_env "RAZORPAY_KEY_ID"
-check_env "RAZORPAY_KEY_SECRET"
-check_env "EMAIL_HOST_USER"
-check_env "EMAIL_HOST_PASSWORD"
-
-if [ -z "$CLOUDINARY_URL" ]; then
-    check_env "CLOUDINARY_CLOUD_NAME"
-    check_env "CLOUDINARY_API_KEY"
-    check_env "CLOUDINARY_API_SECRET"
+if [ -z "$SECRET_KEY" ]; then
+    echo "WARNING: SECRET_KEY is not set. Django will generate a temporary key for this deploy."
 fi
 
-if [ ${#missing_env[@]} -gt 0 ]; then
-    echo "Missing required Render environment variable(s): ${missing_env[*]}"
-    echo "Add them in Render Dashboard -> Service -> Environment, then redeploy."
-    exit 1
+if [ -z "$RAZORPAY_KEY_ID" ] || [ -z "$RAZORPAY_KEY_SECRET" ]; then
+    echo "WARNING: Razorpay environment variables are not fully set. Online payments will not work until configured."
+fi
+
+if [ -z "$EMAIL_HOST_USER" ] || [ -z "$EMAIL_HOST_PASSWORD" ]; then
+    echo "WARNING: Email environment variables are not fully set. SMTP email delivery will not work until configured."
+fi
+
+if [ -z "$CLOUDINARY_URL" ] && { [ -z "$CLOUDINARY_CLOUD_NAME" ] || [ -z "$CLOUDINARY_API_KEY" ] || [ -z "$CLOUDINARY_API_SECRET" ]; }; then
+    echo "WARNING: Cloudinary environment variables are not fully set. Uploaded media may not persist across deploys."
 fi
 
 pip install -r requirements.txt

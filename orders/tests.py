@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
-from orders.models import Order
+from orders.models import Order, OrderItem
 from products.models import Category, Product, ProductSizeStock, Size
 from shipping.models import Shipment
 
@@ -96,3 +96,44 @@ class OrderEstimatedDeliveryTests(TestCase):
             response.context['order'].estimated_delivery_date,
             timezone.localdate() + timedelta(days=3),
         )
+
+    def test_invoice_handles_order_item_without_variant(self):
+        order = Order.objects.create(
+            user=self.user,
+            full_name='Test Customer',
+            email='customer@example.com',
+            phone_number='9876543210',
+            address='123 Main Street',
+            city='Surat',
+            state='Gujarat',
+            pincode='395007',
+            subtotal_amount='2499.00',
+            total_amount='2499.00',
+            payment_method='cod',
+        )
+        OrderItem.objects.create(
+            order=order,
+            variant=None,
+            product_name_at_purchase='Archived Product',
+            color_at_purchase='Blue',
+            size_at_purchase='M',
+            price_at_purchase='2499.00',
+            quantity=1,
+            price='2499.00',
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('download_invoice', args=[order.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_payment_success_rejects_invalid_json(self):
+        response = self.client.post(
+            reverse('payment_success'),
+            data='not-json',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['status'], 'failed')

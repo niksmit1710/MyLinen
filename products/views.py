@@ -211,7 +211,7 @@ def product_detail(request, id):
     variants = product.variants.all()
     if not variants:
         # Handle product with no variants gracefully
-        return redirect('homepage')
+        return redirect('home')
 
     # Pick the first available variant as default
     default_variant = variants.first()

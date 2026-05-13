@@ -697,26 +697,14 @@
             `;
             div.querySelector('.preview-remove').addEventListener('click', () => {
                 const idx = Array.from(previewGrid.querySelectorAll('.review-preview-item:not(.existing-img)')).indexOf(div);
-                if (idx > -1) selectedFiles.splice(idx, 0);
-                // Rebuild selectedFiles from remaining non-existing items
+                if (idx > -1) selectedFiles.splice(idx, 1);
                 div.remove();
-                rebuildSelectedFiles();
                 syncFileInput();
                 updateCounter();
             });
             previewGrid.appendChild(div);
         };
         reader.readAsDataURL(file);
-    }
-
-    function rebuildSelectedFiles() {
-        // Re-index: not strictly needed since we remove by element, but keep array consistent
-        const items = previewGrid.querySelectorAll('.review-preview-item:not(.existing-img)');
-        const newFiles = [];
-        items.forEach((item, i) => {
-            if (selectedFiles[i]) newFiles.push(selectedFiles[i]);
-        });
-        selectedFiles = newFiles;
     }
 
     function syncFileInput() {

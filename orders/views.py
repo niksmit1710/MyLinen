@@ -166,6 +166,12 @@ def checkout(request):
             if is_ajax:
                 return JsonResponse({'status': 'failed', 'error': error}, status=400)
             return _render_checkout(request, cart, total, form_data=form_data, error=error)
+
+        if payment_method == 'online' and (not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET):
+            error = 'Online payments are currently unavailable. Please choose Cash on Delivery.'
+            if is_ajax:
+                return JsonResponse({'status': 'failed', 'error': error}, status=503)
+            return _render_checkout(request, cart, total, form_data=form_data, error=error)
         
         if payable_amount_check == 0:
             payment_method = 'wallet'
@@ -384,14 +390,24 @@ def order_success(request):
 @csrf_exempt
 def payment_success(request):
     if request.method == "POST":
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'failed', 'error': 'Invalid JSON'}, status=400)
 
-        client = razorpay.Client(auth=(
-            settings.RAZORPAY_KEY_ID,
-            settings.RAZORPAY_KEY_SECRET
-        ))
+        required_fields = {'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature'}
+        if not required_fields.issubset(data):
+            return JsonResponse({'status': 'failed', 'error': 'Missing payment fields'}, status=400)
+
+        if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
+            return JsonResponse({'status': 'failed', 'error': 'Online payments are not configured'}, status=503)
 
         try:
+            client = razorpay.Client(auth=(
+                settings.RAZORPAY_KEY_ID,
+                settings.RAZORPAY_KEY_SECRET
+            ))
+
             client.utility.verify_payment_signature({
                 'razorpay_order_id': data['razorpay_order_id'],
                 'razorpay_payment_id': data['razorpay_payment_id'],
@@ -405,8 +421,8 @@ def payment_success(request):
 
             return JsonResponse({'status': 'success'})
 
-        except:
-            return JsonResponse({'status': 'failed'})
+        except Exception:
+            return JsonResponse({'status': 'failed'}, status=400)
 
     return JsonResponse({'status': 'failed'})
 
@@ -559,8 +575,13 @@ def download_invoice(request, order_id):
 
     for item in order.items.all():
         line_total = item.price * item.quantity
+        product_name = item.product_name_at_purchase
+        if not product_name and item.variant:
+            product_name = item.variant.product.name
+        product_name = product_name or 'Product unavailable'
+
         lines.append(
-            f'- {item.variant.product.name} | Color: {item.color_at_purchase} | Size: {item.size_at_purchase} | Qty: {item.quantity} | Rs. {line_total}'
+            f'- {product_name} | Color: {item.color_at_purchase or "-"} | Size: {item.size_at_purchase or "-"} | Qty: {item.quantity} | Rs. {line_total}'
         )
 
     lines.extend([
