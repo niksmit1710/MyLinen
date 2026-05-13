@@ -20,7 +20,7 @@ ORDER SUMMARY:
 
 TOTAL AMOUNT: Rs. {{ order.total_amount }}
 
-You can view your order details here: {{ site_url }}/orders/{{ order.id }}/
+You can view your order details here: {{ site_url }}{% url 'order_detail' order.id %}
 
 Thank you for shopping with MyLinen!
 {% if year %}&copy; {{ year }} MyLinen{% endif %}

@@ -253,13 +253,19 @@ RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", "")
 # Email Configuration
 
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+EMAIL_PORT = int(env('EMAIL_PORT', 587))
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+EMAIL_USE_SSL = env_bool('EMAIL_USE_SSL', False)
+EMAIL_TIMEOUT = int(env('EMAIL_TIMEOUT', 20))
 
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_SEND_ASYNC = env_bool('EMAIL_SEND_ASYNC', False)
 
-if DEBUG:
+configured_email_backend = env('EMAIL_BACKEND')
+if configured_email_backend:
+    EMAIL_BACKEND = configured_email_backend
+elif DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -270,7 +276,10 @@ else:
         RuntimeWarning,
     )
 
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'MyLinen <noreply@mylinen.com>')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL') or (
+    f'MyLinen <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'MyLinen <noreply@mylinen.com>'
+)
+SERVER_EMAIL = env('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
 SITE_URL = env('SITE_URL', 'https://mylinen.onrender.com')
 LOGIN_OTP_SENDER = env('LOGIN_OTP_SENDER', '')

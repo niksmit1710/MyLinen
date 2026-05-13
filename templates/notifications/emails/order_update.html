@@ -73,7 +73,7 @@
             </div>
 
             <center>
-                <a href="{{ site_url }}/orders/{{ order.id }}/" class="btn">VIEW ORDER DETAILS</a>
+                <a href="{{ site_url }}{% url 'order_detail' order.id %}" class="btn">VIEW ORDER DETAILS</a>
             </center>
         </div>
 
