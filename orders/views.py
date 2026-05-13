@@ -173,10 +173,13 @@ def checkout(request):
         with transaction.atomic():
             locked_stocks = []
             for item in cart.values():
-                stock = ProductSizeStock.objects.select_for_update().get(
-                    variant_id=item['variant_id'],
-                    size_id=item['size_id']
-                )
+                stock_filter = {'size_id': item['size_id']}
+                if item.get('variant_id'):
+                    stock_filter['variant_id'] = item['variant_id']
+                else:
+                    stock_filter['product_id'] = item['product_id']
+
+                stock = ProductSizeStock.objects.select_for_update().get(**stock_filter)
                 locked_stocks.append((item, stock))
 
                 if stock.stock < item['quantity']:
@@ -248,11 +251,11 @@ def checkout(request):
             for item, stock in locked_stocks:
                 OrderItem.objects.create(
                     order=order,
-                    variant_id=item['variant_id'],
+                    variant_id=item.get('variant_id'),
                     quantity=item['quantity'],
                     price=item['price'],
                     product_name_at_purchase=item['name'],
-                    color_at_purchase=item['color'],
+                    color_at_purchase=item.get('color', ''),
                     size_at_purchase=item['size'],
                     price_at_purchase=item['price']
                 )

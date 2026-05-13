@@ -13,6 +13,23 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+from django.core.management.utils import get_random_secret_key
+
+
+def env(name, default=None, required=False):
+    value = os.environ.get(name, default)
+    if required and not value:
+        raise ImproperlyConfigured(f"Missing required environment variable: {name}")
+    return value
+
+
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,11 +37,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-i%+199@l_!@jgg@6zif%o%1x#7!j4xgsftm@a(xvi+$iv^bi@e"
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DEBUG", False)
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = env("SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = get_random_secret_key()
+    else:
+        raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG is False")
 
 ALLOWED_HOSTS = ['127.0.0.1',
     'localhost',
@@ -148,11 +170,18 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'dznysydhm',
-    'API_KEY': '671416973318251',
-    'API_SECRET': '4YJo2GiCzi4gr086_07nvFa4o9s',
-}
+CLOUDINARY_STORAGE = {}
+if all(env(name) for name in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")):
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': env("CLOUDINARY_CLOUD_NAME"),
+        'API_KEY': env("CLOUDINARY_API_KEY"),
+        'API_SECRET': env("CLOUDINARY_API_SECRET"),
+    }
+elif not DEBUG and not env("CLOUDINARY_URL"):
+    raise ImproperlyConfigured(
+        "Cloudinary credentials must be set with CLOUDINARY_URL or "
+        "CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET"
+    )
 import os
 
 if os.environ.get("CLOUDINARY_URL"):
@@ -214,8 +243,8 @@ LOGIN_REDIRECT_URL = '/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-RAZORPAY_KEY_ID = 'rzp_test_SgnlUShPZzZePw'
-RAZORPAY_KEY_SECRET = 'RqWMAqYqRBHRhPpcKQPxzz5b'
+RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", required=not DEBUG)
+RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", required=not DEBUG)
 # Email Configuration
 
 if DEBUG:
@@ -227,10 +256,13 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'rashmit1806@gmail.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'ludm iqeo dygo qhhv')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+if not DEBUG and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
+    raise ImproperlyConfigured("EMAIL_HOST_USER and EMAIL_HOST_PASSWORD must be set when DEBUG is False")
 
-DEFAULT_FROM_EMAIL = 'MyLinen <noreply@mylinen.com>'
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'MyLinen <noreply@mylinen.com>')
 
-SITE_URL = 'https://mylinen.onrender.com'
+SITE_URL = env('SITE_URL', 'https://mylinen.onrender.com')
+LOGIN_OTP_SENDER = env('LOGIN_OTP_SENDER', '')
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

@@ -1,11 +1,38 @@
+import secrets
+import time
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.utils.crypto import constant_time_compare, salted_hmac
+from django.utils.module_loading import import_string
 from django.shortcuts import redirect, render
 
 from .models import User, Wallet
 from wishlist.models import Wishlist
 from orders.models import Order
+
+
+OTP_TTL_SECONDS = 300
+OTP_MAX_ATTEMPTS = 5
+
+
+def _generate_otp():
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def _hash_otp(mobile, otp):
+    return salted_hmac("accounts.login_otp", f"{mobile}:{otp}").hexdigest()
+
+
+def _send_login_otp(mobile, otp):
+    sender_path = getattr(settings, "LOGIN_OTP_SENDER", "")
+    if sender_path:
+        sender = import_string(sender_path)
+        sender(mobile, otp)
+        return True
+    return settings.DEBUG
 
 
 def login_view(request):
@@ -17,10 +44,19 @@ def login_view(request):
     if request.method == 'POST':
         mobile = request.POST.get('mobile', '').strip()
         if mobile:
-            # Simulate sending OTP
+            otp = _generate_otp()
+            if not _send_login_otp(mobile, otp):
+                messages.error(request, 'OTP delivery is not configured. Please use username/password login.')
+                return render(request, 'accounts/login.html', {'next': next_url})
+
             request.session['login_mobile'] = mobile
-            request.session['login_otp'] = '123456' # Mock OTP
-            messages.info(request, f'OTP sent to +91 {mobile} (Use 123456 for testing)')
+            request.session['login_otp_hash'] = _hash_otp(mobile, otp)
+            request.session['login_otp_expires_at'] = int(time.time()) + OTP_TTL_SECONDS
+            request.session['login_otp_attempts'] = 0
+            if settings.DEBUG:
+                messages.info(request, f'Development OTP for +91 {mobile}: {otp}')
+            else:
+                messages.info(request, f'OTP sent to +91 {mobile}.')
             return render(request, 'accounts/otp_verification.html', {'next': next_url})
         
         # Legacy username/password login (if still needed)
@@ -40,10 +76,30 @@ def verify_otp(request):
     if request.method == 'POST':
         otp = request.POST.get('otp', '').strip()
         mobile = request.session.get('login_mobile')
-        correct_otp = request.session.get('login_otp')
+        otp_hash = request.session.get('login_otp_hash')
+        expires_at = request.session.get('login_otp_expires_at', 0)
+        attempts = request.session.get('login_otp_attempts', 0)
         next_url = request.POST.get('next', '') or 'home'
 
-        if otp == correct_otp:
+        if not mobile or not otp_hash:
+            messages.error(request, 'OTP session expired. Please request a new OTP.')
+            return redirect('login')
+
+        if int(time.time()) > expires_at:
+            for key in ('login_mobile', 'login_otp_hash', 'login_otp_expires_at', 'login_otp_attempts'):
+                request.session.pop(key, None)
+            messages.error(request, 'OTP expired. Please request a new OTP.')
+            return redirect('login')
+
+        if attempts >= OTP_MAX_ATTEMPTS:
+            for key in ('login_mobile', 'login_otp_hash', 'login_otp_expires_at', 'login_otp_attempts'):
+                request.session.pop(key, None)
+            messages.error(request, 'Too many invalid OTP attempts. Please request a new OTP.')
+            return redirect('login')
+
+        request.session['login_otp_attempts'] = attempts + 1
+
+        if constant_time_compare(_hash_otp(mobile, otp), otp_hash):
             # Check if user exists, else create
             user = User.objects.filter(phone_number=mobile).first()
             if not user:
@@ -56,8 +112,8 @@ def verify_otp(request):
                 )
             
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            del request.session['login_mobile']
-            del request.session['login_otp']
+            for key in ('login_mobile', 'login_otp_hash', 'login_otp_expires_at', 'login_otp_attempts'):
+                request.session.pop(key, None)
             messages.success(request, f'Welcome back!')
             return redirect(next_url)
         else:
