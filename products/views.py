@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.db.models import Avg, Count, F, ExpressionWrapper, FloatField, Prefetch
 from django.db.models.functions import Coalesce, Round
+from orders.models import RETURN_WINDOW_DAYS
 from .models import Product, ProductVariant, Category, Review, Color, ReviewImage
 
 
@@ -302,6 +303,7 @@ def product_detail(request, id):
         'user_review_images': user_review_images,
         'is_verified_buyer': is_verified_buyer,
         'related_products': related_products,
+        'return_window_days': RETURN_WINDOW_DAYS,
     })
 
 

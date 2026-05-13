@@ -18,6 +18,7 @@ STATUS_CHOICES = [
 PAYMENT_METHODS = [
     ('cod', 'Cash on Delivery'),
     ('online', 'Online Payment'),
+    ('wallet', 'Wallet'),
 ]
 DISCOUNT_TYPE_CHOICES = [
     ('percentage', 'Percentage (%)'),

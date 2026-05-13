@@ -255,12 +255,4 @@ def remove_from_cart(request, key):
     return redirect('cart_detail')
 
 def checkout(request):
-    coupon_code = request.POST.get('coupon')
-
-    if coupon_code:
-        try:
-            coupon = Coupon.objects.get(code=coupon_code, is_active=True)
-            # Placeholder logic - needs proper cart total implementation
-        except:
-            pass
-    return render(request, 'checkout.html')
+    return redirect('checkout')

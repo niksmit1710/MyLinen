@@ -27,9 +27,7 @@
             </div>
             <div class="detail-row">
                 <span class="label">Payment</span>
-                <span class="value">
-                    {% if order.payment_method == 'cod' %}Cash on Delivery{% else %}Online Payment{% endif %}
-                </span>
+                <span class="value">{{ order.get_payment_method_display }}</span>
             </div>
             <div class="detail-row">
                 <span class="label">Estimated Delivery</span>

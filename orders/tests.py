@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import User
+from accounts.models import User, Wallet
 from orders.models import Order, OrderItem
 from products.models import Category, Product, ProductSizeStock, Size
 from shipping.models import Shipment
@@ -66,6 +66,41 @@ class OrderEstimatedDeliveryTests(TestCase):
             shipment.estimated_delivery_date,
             timezone.localdate(order.created_at) + timedelta(days=7),
         )
+
+    def test_wallet_only_checkout_uses_wallet_payment_method(self):
+        wallet, _ = Wallet.objects.get_or_create(user=self.user)
+        wallet.balance = self.product.price
+        wallet.save()
+
+        self.client.force_login(self.user)
+        session = self.client.session
+        session['cart'] = {
+            f'{self.product.id}_{self.size.id}': {
+                'product_id': self.product.id,
+                'name': self.product.name,
+                'price': float(self.product.price),
+                'quantity': 1,
+                'image': self.product.image.url,
+                'size': self.size.name,
+                'size_id': self.size.id,
+            }
+        }
+        session.save()
+
+        response = self.client.post(reverse('checkout'), {
+            'full_name': 'Test Customer',
+            'email': 'customer@example.com',
+            'phone_number': '9876543210',
+            'address': '123 Main Street',
+            'city': 'Surat',
+            'state': 'Gujarat',
+            'pincode': '395007',
+        })
+
+        self.assertRedirects(response, reverse('order_success'))
+        order = Order.objects.get(user=self.user)
+        self.assertEqual(order.payment_method, 'wallet')
+        self.assertTrue(order.is_paid)
 
     def test_order_detail_uses_shipment_estimated_delivery_date(self):
         order = Order.objects.create(

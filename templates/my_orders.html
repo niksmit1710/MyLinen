@@ -52,7 +52,7 @@
                             </div>
                             <div class="summary-line">
                                 <span>Payment</span>
-                                <span class="method">{% if order.payment_method == 'cod' %}COD{% else %}Online{% endif %}</span>
+                                <span class="method">{{ order.get_payment_method_display }}</span>
                             </div>
                             <a href="{% url 'order_detail' order.id %}" class="view-details-btn">VIEW FULL DETAILS</a>
                         </div>
