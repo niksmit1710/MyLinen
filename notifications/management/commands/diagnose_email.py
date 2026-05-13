@@ -18,6 +18,14 @@ class Command(BaseCommand):
         self.stdout.write(f"EMAIL_HOST_USER set: {bool(settings.EMAIL_HOST_USER)}")
         self.stdout.write(f"EMAIL_HOST_PASSWORD set: {bool(settings.EMAIL_HOST_PASSWORD)}")
         self.stdout.write(f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
+        self.stdout.write(f"DEBUG: {settings.DEBUG}")
+        self.stdout.write(f"EMAIL_SEND_ASYNC: {getattr(settings, 'EMAIL_SEND_ASYNC', False)}")
+
+        if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
+            self.stdout.write(self.style.WARNING(
+                "Console email backend is active (typical when DEBUG=True). "
+                "Messages are printed to the server log, not delivered to inboxes."
+            ))
 
         if settings.EMAIL_BACKEND.endswith('.dummy.EmailBackend'):
             self.stdout.write(self.style.WARNING(
