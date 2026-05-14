@@ -263,17 +263,29 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 EMAIL_SEND_ASYNC = env_bool('EMAIL_SEND_ASYNC', False)
 
-# Resend (HTTPS API) — works on Render free tier where outbound SMTP ports are blocked.
+# --- Transactional Email (HTTPS API — works on Render free tier) ---
+# SendGrid: Single Sender Verification only — no domain needed. 100 emails/day free.
+# https://anymail.dev/en/stable/esps/sendgrid/
+SENDGRID_API_KEY = env('SENDGRID_API_KEY', '').strip()
+
+# Resend: requires verified domain to send to arbitrary recipients.
 # https://anymail.dev/en/stable/esps/resend/
 RESEND_API_KEY = env('RESEND_API_KEY', '').strip()
+
 ANYMAIL = {}
-if RESEND_API_KEY:
+if SENDGRID_API_KEY:
+    ANYMAIL = {'SENDGRID_API_KEY': SENDGRID_API_KEY}
+elif RESEND_API_KEY:
     ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
 
 configured_email_backend = env('EMAIL_BACKEND')
 if configured_email_backend:
     EMAIL_BACKEND = configured_email_backend
+elif SENDGRID_API_KEY:
+    # SendGrid: can send to any recipient with Single Sender Verification (no domain required)
+    EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
 elif RESEND_API_KEY:
+    # Resend: requires a verified domain for sending to arbitrary recipients
     EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
 elif DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -282,13 +294,13 @@ elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
     warnings.warn(
-        "No transactional email configured: set RESEND_API_KEY (recommended on Render free) "
-        "or EMAIL_HOST_USER and EMAIL_HOST_PASSWORD for SMTP.",
+        "No transactional email configured. Set SENDGRID_API_KEY (easiest, no domain needed) "
+        "or RESEND_API_KEY (requires verified domain) or EMAIL_HOST_USER+EMAIL_HOST_PASSWORD.",
         RuntimeWarning,
     )
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL') or (
-    f'MyLinen <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'MyLinen <onboarding@resend.dev>'
+    f'MyLinen <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'MyLinen <noreply@example.com>'
 )
 SERVER_EMAIL = env('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
