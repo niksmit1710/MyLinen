@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "anymail",
     "accounts",
     "products",
     "cart",
@@ -262,9 +263,18 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 EMAIL_SEND_ASYNC = env_bool('EMAIL_SEND_ASYNC', False)
 
+# Resend (HTTPS API) — works on Render free tier where outbound SMTP ports are blocked.
+# https://anymail.dev/en/stable/esps/resend/
+RESEND_API_KEY = env('RESEND_API_KEY', '').strip()
+ANYMAIL = {}
+if RESEND_API_KEY:
+    ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
+
 configured_email_backend = env('EMAIL_BACKEND')
 if configured_email_backend:
     EMAIL_BACKEND = configured_email_backend
+elif RESEND_API_KEY:
+    EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
 elif DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
@@ -272,12 +282,13 @@ elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
     warnings.warn(
-        "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD are not set. SMTP email delivery will be disabled.",
+        "No transactional email configured: set RESEND_API_KEY (recommended on Render free) "
+        "or EMAIL_HOST_USER and EMAIL_HOST_PASSWORD for SMTP.",
         RuntimeWarning,
     )
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL') or (
-    f'MyLinen <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'MyLinen <noreply@mylinen.com>'
+    f'MyLinen <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'MyLinen <onboarding@resend.dev>'
 )
 SERVER_EMAIL = env('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
