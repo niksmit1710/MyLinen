@@ -6,6 +6,7 @@ from django.shortcuts import render
 
 
 def _email_config_status():
+    resend_key = getattr(settings, 'ANYMAIL', {}).get('RESEND_API_KEY', '')
     return {
         'backend': settings.EMAIL_BACKEND,
         'host': settings.EMAIL_HOST,
@@ -16,6 +17,7 @@ def _email_config_status():
         'host_password_set': bool(settings.EMAIL_HOST_PASSWORD),
         'default_from_email': settings.DEFAULT_FROM_EMAIL,
         'dummy_backend': settings.EMAIL_BACKEND.endswith('.dummy.EmailBackend'),
+        'resend_configured': bool(resend_key),
     }
 
 
@@ -28,7 +30,7 @@ def email_diagnostics(request):
         if not recipient:
             messages.error(request, 'Enter a recipient email address.')
         elif status['dummy_backend']:
-            messages.error(request, 'Email is disabled because the dummy backend is active.')
+            messages.error(request, 'Email is disabled because the dummy backend is active. Set RESEND_API_KEY or SMTP credentials.')
         else:
             message = EmailMultiAlternatives(
                 subject='MyLinen email diagnostics',

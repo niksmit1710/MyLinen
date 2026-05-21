@@ -58,7 +58,7 @@ def send_order_email(order, event_type, context_extra=None, async_send=None):
     if _email_backend_is_disabled():
         logger.warning(
             "Skipping order email for order %s: EMAIL_BACKEND is dummy. "
-            "Set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD or EMAIL_BACKEND.",
+            "Set RESEND_API_KEY (API email, Render free) or EMAIL_HOST_USER and EMAIL_HOST_PASSWORD or EMAIL_BACKEND.",
             order.id,
         )
         return False

@@ -10,8 +10,8 @@ if [ -z "$RAZORPAY_KEY_ID" ] || [ -z "$RAZORPAY_KEY_SECRET" ]; then
     echo "WARNING: Razorpay environment variables are not fully set. Online payments will not work until configured."
 fi
 
-if [ -z "$EMAIL_HOST_USER" ] || [ -z "$EMAIL_HOST_PASSWORD" ]; then
-    echo "WARNING: Email environment variables are not fully set. SMTP email delivery will not work until configured."
+if [ -z "$RESEND_API_KEY" ] && { [ -z "$EMAIL_HOST_USER" ] || [ -z "$EMAIL_HOST_PASSWORD" ]; }; then
+    echo "WARNING: No email sending configured. Set RESEND_API_KEY (API, works on Render free) or EMAIL_HOST_USER + EMAIL_HOST_PASSWORD (SMTP, blocked on Render free web services)."
 fi
 
 if [ -z "$CLOUDINARY_URL" ] && { [ -z "$CLOUDINARY_CLOUD_NAME" ] || [ -z "$CLOUDINARY_API_KEY" ] || [ -z "$CLOUDINARY_API_SECRET" ]; }; then

@@ -20,6 +20,13 @@ class Command(BaseCommand):
         self.stdout.write(f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
         self.stdout.write(f"DEBUG: {settings.DEBUG}")
         self.stdout.write(f"EMAIL_SEND_ASYNC: {getattr(settings, 'EMAIL_SEND_ASYNC', False)}")
+        resend_on = bool(getattr(settings, 'ANYMAIL', {}).get('RESEND_API_KEY'))
+        self.stdout.write(f"RESEND_API_KEY set: {resend_on}")
+
+        if settings.EMAIL_BACKEND == 'anymail.backends.resend.EmailBackend':
+            self.stdout.write(self.style.SUCCESS(
+                "Using Resend API over HTTPS (works on Render free web services where SMTP is blocked)."
+            ))
 
         if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
             self.stdout.write(self.style.WARNING(
@@ -30,7 +37,8 @@ class Command(BaseCommand):
         if settings.EMAIL_BACKEND.endswith('.dummy.EmailBackend'):
             self.stdout.write(self.style.WARNING(
                 "Email is disabled because the dummy backend is active. "
-                "Set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD, or set EMAIL_BACKEND explicitly."
+                "Set RESEND_API_KEY for API email (Render free), or set EMAIL_HOST_USER and "
+                "EMAIL_HOST_PASSWORD for SMTP, or set EMAIL_BACKEND explicitly."
             ))
 
         recipient = options.get('to')
@@ -39,7 +47,7 @@ class Command(BaseCommand):
 
         message = EmailMultiAlternatives(
             subject='MyLinen email diagnostics',
-            body='If you received this, MyLinen SMTP email is working.',
+            body='If you received this, MyLinen outbound email is working.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[recipient],
             reply_to=[settings.EMAIL_HOST_USER] if settings.EMAIL_HOST_USER else None,
